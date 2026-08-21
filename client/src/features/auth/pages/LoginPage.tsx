@@ -21,7 +21,6 @@ interface LoginLocationState {
     pathname?: string;
   };
   logoutSuccess?: boolean;
-  inactivityLogout?: boolean;
   sessionExpired?: boolean;
 }
 
@@ -95,12 +94,6 @@ export function LoginPage() {
           {showLogoutSuccess && (
             <div role="status" className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
               Logout berhasil. Sampai jumpa kembali.
-            </div>
-          )}
-
-          {locationState?.inactivityLogout && (
-            <div role="status" className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              Sesi berakhir karena tidak ada aktivitas. Silakan masuk kembali.
             </div>
           )}
 

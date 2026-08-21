@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "../components/common/ProtectedRoute";
 import { MainLayout } from "../components/layout/MainLayout";
 import { LoginPage } from "../features/auth/pages/LoginPage";
+import { SessionExpiredPage } from "../features/auth/pages/SessionExpiredPage";
 import { MyBookingsPage } from "../features/bookings/pages/MyBookingsPage";
 import { DashboardPage } from "../features/dashboard/pages/DashboardPage";
 import { Role } from "../types";
@@ -24,6 +25,7 @@ export function AppRoutes() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/session-expired" element={<SessionExpiredPage />} />
 
         <Route element={<ProtectedRoute />}>
           <Route element={<MainLayout />}>

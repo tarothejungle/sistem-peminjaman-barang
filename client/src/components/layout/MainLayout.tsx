@@ -59,15 +59,18 @@ export function MainLayout() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => localStorage.getItem("sidebar-collapsed") === "true");
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [feedback, setFeedback] = useState<string | null>(() => {
-    const state = location.state as { loginSuccess?: boolean } | null;
-    return state?.loginSuccess ? "Login berhasil. Selamat datang kembali." : null;
-  });
+  const [feedback, setFeedback] = useState<string | null>(null);
   const canApprove = user?.role === Role.KABAG_UMUM || user?.role === Role.PJ_RUANGAN;
   const isAdmin = user?.role === Role.KABAG_UMUM;
   const pendingCount = usePendingBookingCount(canApprove);
 
   useEffect(() => { localStorage.setItem("sidebar-collapsed", String(isSidebarCollapsed)); }, [isSidebarCollapsed]);
+  useEffect(() => {
+    const state = location.state as { loginSuccess?: boolean } | null;
+    if (!state?.loginSuccess) return;
+    setFeedback("Login berhasil. Selamat datang kembali.");
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate]);
 
   const handleLogout = async () => {
     await logout();

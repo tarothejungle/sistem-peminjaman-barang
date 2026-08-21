@@ -24,10 +24,10 @@ export function InactivitySessionManager() {
     const redirect = (reason: "inactive" | "invalid") => {
       clearAuth();
       queryClient.clear();
-      navigate("/login", { replace: true, state: reason === "inactive" ? { inactivityLogout: true } : { sessionExpired: true } });
+      navigate(reason === "inactive" ? "/session-expired" : "/login", { replace: true, state: reason === "invalid" ? { sessionExpired: true } : null });
     };
     const finishSession = async (reason: "inactive" | "invalid") => {
-      channel.postMessage("logout");
+      channel.postMessage({ type: "logout", reason });
       try {
         await logout();
       } finally {
@@ -53,7 +53,10 @@ export function InactivitySessionManager() {
       }
     };
 
-    channel.onmessage = ({ data }) => data === "activity" ? schedule() : data === "logout" ? redirect("invalid") : undefined;
+    channel.onmessage = ({ data }) => {
+      if (data === "activity") schedule();
+      if (data?.type === "logout") redirect(data.reason === "inactive" ? "inactive" : "invalid");
+    };
     const unauthorized = (event: Event) => {
       const code = (event as CustomEvent<{ code?: string }>).detail?.code;
       void finishSession(code === "SESSION_INACTIVE" ? "inactive" : "invalid");
