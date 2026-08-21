@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Enums\BookingStatus;
 use App\Exceptions\ApiException;
 use App\Http\Requests\BookingAvailabilityRequest;
-use App\Http\Requests\BookingStatusRequest;
 use App\Http\Requests\CreateBookingRequest;
 use App\Http\Requests\UpdateBookingRequest;
 use App\Http\Requests\WorkflowRequest;
@@ -109,17 +108,6 @@ final class BookingController extends Controller
             : [BookingStatus::PENDING_KABAG_APPROVAL->value];
 
         return response()->json(['data' => ['count' => Booking::whereIn('status', $statuses)->count()]]);
-    }
-
-    public function status(BookingStatusRequest $request, string $id): JsonResponse
-    {
-        $this->assertUuid($id);
-        $status = BookingStatus::from($request->validated('status'));
-        if (in_array($status, [BookingStatus::PENDING_PJ_REVIEW, BookingStatus::PREPARING, BookingStatus::PENDING_KABAG_APPROVAL, BookingStatus::APPROVED, BookingStatus::REJECTED], true)) {
-            throw new ApiException('Status hanya dapat diubah melalui tahap alur kerja yang sesuai', 400);
-        }
-
-        return response()->json(['data' => $this->bookings->updateStatus($id, $status, $request->validated())]);
     }
 
     public function pjReview(WorkflowRequest $request, string $id): JsonResponse

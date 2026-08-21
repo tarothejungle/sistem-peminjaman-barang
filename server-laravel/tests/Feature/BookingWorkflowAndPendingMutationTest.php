@@ -84,12 +84,9 @@ final class BookingWorkflowAndPendingMutationTest extends TestCase
     {
         $bookingId = (string) Str::uuid();
 
-        foreach ([BookingStatus::PREPARING, BookingStatus::PENDING_KABAG_APPROVAL, BookingStatus::APPROVED] as $status) {
-            $this->withToken($this->token(Role::KABAG_UMUM))->patchJson("/api/v1/bookings/{$bookingId}/status", [
-                'status' => $status->value,
-            ])->assertBadRequest()
-                ->assertJsonPath('error.message', 'Status hanya dapat diubah melalui tahap alur kerja yang sesuai');
-        }
+        $this->withToken($this->token(Role::KABAG_UMUM))->patchJson("/api/v1/bookings/{$bookingId}/status", [
+            'status' => BookingStatus::APPROVED->value,
+        ])->assertNotFound();
     }
 
     public function test_owner_can_confirm_approved_booking_only_after_end_time(): void

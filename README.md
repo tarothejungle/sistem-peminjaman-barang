@@ -38,8 +38,8 @@ server-laravel/             # Laravel single-server (public/app = frontend build
   app/{Enums,Models,Services,Http/{Controllers,Requests,Middleware}}
   app/Console/Commands/CreateAdministratorCommand.php
   routes/api.php            # /api/v1 prefix, jwt + role middleware
-  database/migrations/      # 4 Ran: schema, documents, slots, images
-  tests/Feature|Unit/       # 39 test, 197 assertion
+  database/migrations/      # 5 migration: schema, documents, slots, images, auth sessions
+  tests/Feature|Unit/       # 44 test, 209 assertion
 ```
 
 ## Quick Start
@@ -54,6 +54,7 @@ cd server-laravel
 copy .env.example .env   # atau cp .env.example .env
 composer install
 php artisan key:generate
+php artisan auth:generate-secrets
 php artisan migrate
 php artisan admin:create-administrator
 # interactive prompts: Full name, Email, Password (min 8 chars)
@@ -73,7 +74,9 @@ npm run build            # output → server-laravel/public/app
 ```
 
 Env penting `server-laravel/.env`:
-`DB_CONNECTION=pgsql`, `DB_*`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `JWT_ISSUER/AUDIENCE`, `VITE_API_BASE_URL=/api/v1`.
+`DB_CONNECTION=pgsql`, `DB_*`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `JWT_ISSUER/AUDIENCE`, `AUTH_INACTIVITY_TIMEOUT_MINUTES`, `VITE_API_BASE_URL=/api/v1`.
+
+`AUTH_INACTIVITY_TIMEOUT_MINUTES` mengatur batas sesi tanpa aktivitas untuk seluruh role. Nilai wajib disediakan lewat environment; contoh konfigurasi lokal memakai `30` menit. `php artisan auth:generate-secrets` membuat dua JWT secret acak yang independen tanpa mencetak nilainya ke terminal.
 
 `php artisan admin:create-administrator` membuat akun `KABAG_UMUM`. Validasi: nama 3–100 karakter, email RFC max 255, password 8–72 karakter, email unik. Password di-hash (`Hash::make`), role dipatok `KABAG_UMUM`.
 
@@ -82,7 +85,7 @@ Env penting `server-laravel/.env`:
 Base: `/api/v1` — JSON camelCase, error `ApiException`.
 
 ```
-POST   /auth/login | /auth/refresh | /auth/logout
+POST   /auth/login | /auth/refresh | /auth/logout | /auth/activity
 GET    /auth/me                 (jwt)
 PATCH  /auth/password           (jwt)
 GET    /health
@@ -98,7 +101,7 @@ PATCH  /bookings/{id}/confirm-finished        (PEMOHON owner, APPROVED + end_tim
 GET    /bookings/availability                 (PEMOHON, KABAG_UMUM; exclude own pending via bookingId)
 GET    /bookings/availability-summary         (PEMOHON, KABAG_UMUM)
 GET    /bookings/pending-count                (PJ hitung PENDING_PJ_REVIEW+PREPARING, KABAG hitung PENDING_KABAG_APPROVAL)
-GET    /bookings/my | GET /bookings | PATCH /bookings/{id}/{pj-review,kabag-approve,pj-confirm,pj-inspect,status}
+GET    /bookings/my | GET /bookings | PATCH /bookings/{id}/{pj-review,kabag-approve,pj-confirm,pj-inspect}
 GET    /bookings/{id}/document                (owner/PJ/KABAG, private PDF)
 ```
 
@@ -106,7 +109,7 @@ GET    /bookings/{id}/document                (owner/PJ/KABAG, private PDF)
 
 ```bash
 cd server-laravel
-php artisan test                 # 39 passed, 197 assertions
+php artisan test                 # 44 passed, 209 assertions
 vendor/bin/pint --test
 cd ../client
 npm run lint                     # oxlint
@@ -116,4 +119,3 @@ npm run build                    # tsc -b && vite build
 ## License
 
 MIT — see [LICENSE](LICENSE)
-```

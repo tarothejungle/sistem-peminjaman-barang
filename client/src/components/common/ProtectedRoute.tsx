@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 import type { Role } from "../../types";
@@ -11,21 +11,14 @@ export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const [hasHydrated, setHasHydrated] = useState(useAuthStore.persist.hasHydrated());
+  const isInitialized = useAuthStore((state) => state.isInitialized);
+  const checkAuth = useAuthStore((state) => state.checkAuth);
 
   useEffect(() => {
-    const unsubscribeStart = useAuthStore.persist.onHydrate(() => setHasHydrated(false));
-    const unsubscribeEnd = useAuthStore.persist.onFinishHydration(() => setHasHydrated(true));
+    if (!isInitialized) void checkAuth();
+  }, [checkAuth, isInitialized]);
 
-    setHasHydrated(useAuthStore.persist.hasHydrated());
-
-    return () => {
-      unsubscribeStart();
-      unsubscribeEnd();
-    };
-  }, []);
-
-  if (!hasHydrated) {
+  if (!isInitialized) {
     return (
       <main className="grid min-h-screen place-items-center bg-slate-50 px-6">
         <div className="w-full max-w-sm space-y-3" aria-label="Memuat sesi pengguna">

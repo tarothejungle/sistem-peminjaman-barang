@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Http\Controllers\AuthController;
-use App\Services\JwtService;
+use App\Services\AuthSessionService;
 use Illuminate\Http\JsonResponse;
 use Tests\TestCase;
 
@@ -34,7 +34,7 @@ final class ApiBoundaryTest extends TestCase
 
     public function test_refresh_cookie_expires_after_seven_days(): void
     {
-        $controller = new AuthController(app(JwtService::class));
+        $controller = new AuthController(app(AuthSessionService::class));
         $method = new \ReflectionMethod($controller, 'withRefreshCookie');
         $response = $method->invoke($controller, new JsonResponse(['data' => []]), 'refresh-token');
         $cookie = $response->headers->getCookies()[0];

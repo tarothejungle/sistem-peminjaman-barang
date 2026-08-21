@@ -6,17 +6,16 @@ use App\Exceptions\ApiException;
 use App\Http\Requests\ChangePasswordRequest;
 use App\Http\Requests\LoginRequest;
 use App\Models\User;
-use App\Services\JwtService;
+use App\Services\AuthSessionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Response;
-use Throwable;
 
 final class AuthController extends Controller
 {
-    public function __construct(private readonly JwtService $jwt) {}
+    public function __construct(private readonly AuthSessionService $sessions) {}
 
     public function login(LoginRequest $request): JsonResponse
     {
@@ -26,27 +25,38 @@ final class AuthController extends Controller
             throw new ApiException('Email atau password salah', 401);
         }
 
-        return $this->withRefreshCookie(response()->json(['data' => ['accessToken' => $this->jwt->access($user->id, $user->role)]]), $this->jwt->refresh($user->id));
+        $tokens = $this->sessions->create($user);
+
+        return $this->withRefreshCookie(response()->json(['data' => [
+            'accessToken' => $tokens['accessToken'],
+            'inactivityTimeoutSeconds' => $tokens['inactivityTimeoutSeconds'],
+            'activityHeartbeatSeconds' => $tokens['activityHeartbeatSeconds'],
+        ]]), $tokens['refreshToken']);
     }
 
     public function refresh(Request $request): JsonResponse
     {
-        try {
-            $payload = $this->jwt->decode((string) $request->cookie('refreshToken'), 'refresh');
-            $user = User::find($payload->sub);
-        } catch (Throwable) {
-            throw new ApiException('Refresh token tidak valid', 401);
-        }
-        if (! $user) {
-            throw new ApiException('Refresh token tidak valid', 401);
-        }
+        $tokens = $this->sessions->rotate((string) $request->cookie('refreshToken'));
 
-        return response()->json(['data' => ['accessToken' => $this->jwt->access($user->id, $user->role)]]);
+        return $this->withRefreshCookie(response()->json(['data' => [
+            'accessToken' => $tokens['accessToken'],
+            'inactivityTimeoutSeconds' => $tokens['inactivityTimeoutSeconds'],
+            'activityHeartbeatSeconds' => $tokens['activityHeartbeatSeconds'],
+        ]]), $tokens['refreshToken']);
     }
 
-    public function logout(): Response
+    public function logout(Request $request): Response
     {
-        return response()->noContent()->withCookie(Cookie::create('refreshToken')->withExpires(1)->withHttpOnly(true)->withSameSite('strict')->withPath('/api/v1/auth')->withSecure(app()->isProduction()));
+        $this->sessions->revokeFromRefreshToken($request->cookie('refreshToken'));
+
+        return response()->noContent()->withCookie(Cookie::create('refreshToken')->withExpires(1)->withHttpOnly(true)->withSameSite('strict')->withPath('/api/v1/auth')->withSecure(config('jwt.refresh_cookie_secure')));
+    }
+
+    public function activity(Request $request): JsonResponse
+    {
+        $data = $this->sessions->touch((string) $request->attributes->get('auth_session_id'));
+
+        return response()->json(['data' => $data]);
     }
 
     public function me(Request $request): JsonResponse
@@ -72,6 +82,7 @@ final class AuthController extends Controller
         }
 
         $user->update(['password_hash' => Hash::make($data['newPassword'])]);
+        $this->sessions->revokeAllForUser($user->id);
 
         return response()->json(['data' => ['message' => 'Password berhasil diubah']]);
     }
@@ -80,9 +91,9 @@ final class AuthController extends Controller
     {
         $cookie = Cookie::create('refreshToken')
             ->withValue($token)
-            ->withExpires(now()->addDays(7))
+            ->withExpires(now()->addSeconds(config('jwt.refresh_ttl')))
             ->withPath('/api/v1/auth')
-            ->withSecure(app()->isProduction())
+            ->withSecure(config('jwt.refresh_cookie_secure'))
             ->withHttpOnly(true)
             ->withSameSite('strict');
 

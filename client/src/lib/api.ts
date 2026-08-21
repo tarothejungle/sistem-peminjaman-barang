@@ -1,44 +1,29 @@
 import axios from "axios";
-
-const AUTH_STORAGE_KEY = "auth-storage";
-
-interface PersistedAuthStorage {
-  state?: {
-    accessToken?: string | null;
-  };
-}
-
-function getStoredAccessToken(): string | null {
-  try {
-    const value = localStorage.getItem(AUTH_STORAGE_KEY);
-
-    if (!value) {
-      return null;
-    }
-
-    const storage = JSON.parse(value) as PersistedAuthStorage;
-    return storage.state?.accessToken ?? null;
-  } catch {
-    return null;
-  }
-}
+import { getAccessToken } from "./authToken";
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
   withCredentials: true,
-  headers: {
-    Accept: "application/json",
-  },
+  headers: { Accept: "application/json" },
 });
 
 api.interceptors.request.use((config) => {
-  const accessToken = getStoredAccessToken();
-
+  const accessToken = getAccessToken();
   if (accessToken && !config.headers.has("Authorization")) {
     config.headers.set("Authorization", `Bearer ${accessToken}`);
   }
-
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const url = String(error?.config?.url ?? "");
+    if (error?.response?.status === 401 && !url.includes("/auth/login") && !url.includes("/auth/refresh")) {
+      window.dispatchEvent(new CustomEvent("auth:unauthorized", { detail: error.response.data }));
+    }
+    return Promise.reject(error);
+  },
+);
 
 export default api;

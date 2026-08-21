@@ -16,11 +16,12 @@ Route::get('/health', function () {
 });
 
 Route::prefix('auth')->controller(AuthController::class)->group(function (): void {
-    Route::post('/login', 'login');
-    Route::post('/refresh', 'refresh');
+    Route::post('/login', 'login')->middleware('throttle:auth-login');
+    Route::post('/refresh', 'refresh')->middleware('throttle:auth-refresh');
     Route::post('/logout', 'logout');
+    Route::post('/activity', 'activity')->middleware('jwt');
     Route::get('/me', 'me')->middleware('jwt');
-    Route::patch('/password', 'changePassword')->middleware('jwt');
+    Route::patch('/password', 'changePassword')->middleware(['jwt', 'throttle:auth-password']);
 });
 
 Route::middleware('jwt')->group(function (): void {
@@ -70,5 +71,4 @@ Route::middleware('jwt')->group(function (): void {
     Route::patch('/bookings/{id}/kabag-approve', [BookingController::class, 'kabagApprove'])->middleware('role:KABAG_UMUM');
     Route::patch('/bookings/{id}/pj-confirm', [BookingController::class, 'pjConfirm'])->middleware('role:PJ_RUANGAN');
     Route::patch('/bookings/{id}/pj-inspect', [BookingController::class, 'pjInspect'])->middleware('role:PJ_RUANGAN');
-    Route::patch('/bookings/{id}/status', [BookingController::class, 'status'])->middleware('role:KABAG_UMUM,PJ_RUANGAN');
 });

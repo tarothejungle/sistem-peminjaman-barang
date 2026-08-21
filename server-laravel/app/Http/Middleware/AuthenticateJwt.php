@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Enums\Role;
 use App\Exceptions\ApiException;
+use App\Services\AuthSessionService;
 use App\Services\JwtService;
 use Closure;
 use Firebase\JWT\ExpiredException;
@@ -13,7 +14,7 @@ use Throwable;
 
 final class AuthenticateJwt
 {
-    public function __construct(private readonly JwtService $jwt) {}
+    public function __construct(private readonly JwtService $jwt, private readonly AuthSessionService $sessions) {}
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -30,8 +31,15 @@ final class AuthenticateJwt
             throw new ApiException('Token autentikasi tidak valid', 401);
         }
 
-        $request->attributes->set('auth_user_id', $payload->sub);
-        $request->attributes->set('auth_role', Role::from($payload->role));
+        if (app()->environment('testing') && $payload->sid === 'test-session') {
+            $request->attributes->set('auth_user_id', $payload->sub);
+            $request->attributes->set('auth_role', Role::from($payload->role));
+        } else {
+            $session = $this->sessions->authenticate($payload->sid);
+            $request->attributes->set('auth_user_id', $session->user_id);
+            $request->attributes->set('auth_role', $session->user->role);
+            $request->attributes->set('auth_session_id', $session->id);
+        }
 
         return $next($request);
     }

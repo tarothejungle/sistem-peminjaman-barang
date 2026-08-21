@@ -27,4 +27,9 @@ final class User extends Authenticatable
     {
         return $this->hasMany(Booking::class);
     }
+
+    public function authSessions(): HasMany
+    {
+        return $this->hasMany(AuthSession::class);
+    }
 }

@@ -28,6 +28,8 @@
         <env name="DB_URL" value=""/>
         <env name="JWT_ACCESS_SECRET" value="testing-access-secret-at-least-32-characters" force="true"/>
         <env name="JWT_REFRESH_SECRET" value="testing-refresh-secret-at-least-32-characters" force="true"/>
+        <env name="AUTH_INACTIVITY_TIMEOUT_MINUTES" value="30" force="true"/>
+        <env name="JWT_ACCESS_TTL_SECONDS" value="1800" force="true"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

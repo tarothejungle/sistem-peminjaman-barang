@@ -21,6 +21,7 @@ interface LoginLocationState {
     pathname?: string;
   };
   logoutSuccess?: boolean;
+  inactivityLogout?: boolean;
 }
 
 export function LoginPage() {
@@ -52,7 +53,7 @@ export function LoginPage() {
   const handleLogin = handleSubmit(async (input) => {
     try {
       const result = await loginMutation.mutateAsync(input);
-      setAuth(result.user, result.accessToken);
+      setAuth(result.user, result.accessToken, result.inactivityTimeoutSeconds, result.activityHeartbeatSeconds);
 
       navigate(locationState?.from?.pathname ?? "/dashboard", { replace: true, state: { loginSuccess: true } });
     } catch {
@@ -92,6 +93,12 @@ export function LoginPage() {
           {showLogoutSuccess && (
             <div role="status" className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
               Logout berhasil. Sampai jumpa kembali.
+            </div>
+          )}
+
+          {locationState?.inactivityLogout && (
+            <div role="status" className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Sesi berakhir karena tidak ada aktivitas. Silakan masuk kembali.
             </div>
           )}
 

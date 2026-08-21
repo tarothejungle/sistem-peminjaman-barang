@@ -300,19 +300,6 @@ final class BookingService
         return ['rooms' => array_values($rooms), 'items' => array_values($items), 'checkedAt' => $now];
     }
 
-    public function updateStatus(string $id, BookingStatus $status, array $data = []): Booking
-    {
-        return $this->transaction(function () use ($id, $status, $data): Booking {
-            $booking = Booking::with('bookingItems')->lockForUpdate()->find($id) ?? throw new ApiException('Peminjaman tidak ditemukan', 404);
-            if ($status === BookingStatus::APPROVED) {
-                $this->assertAvailable($booking);
-            }
-            $booking->update(['status' => $status, 'rejection_reason' => $status === BookingStatus::REJECTED ? ($data['rejectionReason'] ?? null) : null]);
-
-            return $this->load($booking);
-        });
-    }
-
     public function transition(string $id, BookingStatus $expected, BookingStatus $next, array $data = []): Booking
     {
         return $this->transaction(function () use ($id, $expected, $next, $data): Booking {

@@ -225,7 +225,7 @@ function getStatusUpdateEndpoint(bookingId: string, status: BookingStatus, actor
   if (status === "REJECTED" && actorRole === "PJ_RUANGAN") return `/bookings/${bookingId}/pj-review`;
   if (status === "APPROVED" || status === "REJECTED" || status === "ALTERNATIVE_OFFERED") return `/bookings/${bookingId}/kabag-approve`;
   if (status === "COMPLETED") return `/bookings/${bookingId}/pj-inspect`;
-  return `/bookings/${bookingId}/status`;
+  throw new Error("Transisi status tidak didukung");
 }
 
 export function useUpdateBookingStatus() {

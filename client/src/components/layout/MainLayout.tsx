@@ -25,6 +25,7 @@ import { Role } from "../../types";
 import { getRoleLabel } from "../../utils/roleLabel";
 import { usePendingBookingCount } from "../../features/bookings/api/useBookings";
 import { SuccessToast } from "../common/SuccessToast";
+import { InactivitySessionManager } from "../../features/auth/components/InactivitySessionManager";
 
 const navigation = [
   { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
@@ -77,6 +78,7 @@ export function MainLayout() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
+      <InactivitySessionManager />
       <header className={`fixed inset-x-0 top-0 z-40 flex h-16 items-center border-b border-slate-200 bg-white px-4 transition-[left] duration-200 lg:px-8 ${isSidebarCollapsed ? "lg:left-20" : "lg:left-64"}`}>
         <button
           type="button"
