@@ -1,0 +1,24 @@
+backups/
+server-laravel/.env
+server-laravel/vendor/
+server-laravel/node_modules/
+server-laravel/storage/*.key
+server-laravel/storage/logs/
+server-laravel/bootstrap/cache/*.php
+
+# sanitized branding - keep local, not pushed
+**/binwasnaker.jpg
+**/binwasnaker.png
+**/binwasnaker*.jpg
+docs/
+specs/
+.codebase-memory/
+backups/
+server-laravel/public/app/
+client/dist/
+client/node_modules/
+server-laravel/storage/app/private/
+.env
+.env.*
+!*.env.example
+*.key
