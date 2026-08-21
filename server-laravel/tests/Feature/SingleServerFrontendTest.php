@@ -21,11 +21,10 @@ final class SingleServerFrontendTest extends TestCase
             ->assertSee('<div id="root"></div>', false);
     }
 
-    public function test_binwasnaker_logo_is_served_from_frontend_base_path(): void
+    public function test_frontend_assets_are_built_without_hardcoded_branding_asset(): void
     {
-        $this->assertFileExists(public_path('app/binwasnaker.jpg'));
-        $this->assertGreaterThan(0, filesize(public_path('app/binwasnaker.jpg')));
-        $this->assertStringContainsString('/app/binwasnaker.jpg', file_get_contents(public_path('app/assets/'.collect(scandir(public_path('app/assets')))->first(fn (string $file): bool => str_starts_with($file, 'index-') && str_ends_with($file, '.js')))));
+        $this->assertFileExists(public_path('app/index.html'));
+        $this->assertStringNotContainsString('binwasnaker', strtolower((string) file_get_contents(public_path('app/index.html'))));
     }
 
     public function test_unknown_api_route_does_not_return_react(): void
