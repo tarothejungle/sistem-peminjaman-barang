@@ -39,7 +39,7 @@ server-laravel/             # Laravel single-server (public/app = frontend build
   app/Console/Commands/CreateAdministratorCommand.php
   routes/api.php            # /api/v1 prefix, jwt + role middleware
   database/migrations/      # 5 migration: schema, documents, slots, images, auth sessions
-  tests/Feature|Unit/       # 44 test, 209 assertion
+  tests/Feature|Unit/       # 45 test, 210 assertion
 ```
 
 ## Quick Start
@@ -74,7 +74,7 @@ npm run build            # output → server-laravel/public/app
 ```
 
 Env penting `server-laravel/.env`:
-`DB_CONNECTION=pgsql`, `DB_*`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `JWT_ISSUER/AUDIENCE`, `AUTH_INACTIVITY_TIMEOUT_MINUTES`, `VITE_API_BASE_URL=/api/v1`.
+`DB_CONNECTION=pgsql`, `DB_*`, `DB_TIMEZONE=UTC`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `JWT_ISSUER/AUDIENCE`, `AUTH_INACTIVITY_TIMEOUT_MINUTES`, `VITE_API_BASE_URL=/api/v1`.
 
 `AUTH_INACTIVITY_TIMEOUT_MINUTES` mengatur batas sesi tanpa aktivitas untuk seluruh role. Nilai wajib disediakan lewat environment; contoh konfigurasi lokal memakai `30` menit. `php artisan auth:generate-secrets` membuat dua JWT secret acak yang independen tanpa mencetak nilainya ke terminal.
 
@@ -109,7 +109,7 @@ GET    /bookings/{id}/document                (owner/PJ/KABAG, private PDF)
 
 ```bash
 cd server-laravel
-php artisan test                 # 44 passed, 209 assertions
+php artisan test                 # 45 passed, 210 assertions
 vendor/bin/pint --test
 cd ../client
 npm run lint                     # oxlint

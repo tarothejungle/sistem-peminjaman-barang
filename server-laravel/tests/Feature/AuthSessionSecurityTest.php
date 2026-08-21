@@ -76,6 +76,13 @@ final class AuthSessionSecurityTest extends TestCase
         }
     }
 
+    public function test_new_session_is_immediately_valid_for_protected_route(): void
+    {
+        $tokens = app(AuthSessionService::class)->create($this->user);
+
+        $this->withToken($tokens['accessToken'])->getJson('/api/v1/auth/me')->assertOk();
+    }
+
     public function test_logout_and_password_change_revoke_sessions(): void
     {
         $first = app(AuthSessionService::class)->create($this->user);

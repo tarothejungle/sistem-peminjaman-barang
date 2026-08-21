@@ -21,22 +21,22 @@ export function InactivitySessionManager() {
     let lastBroadcast = 0;
     let lastHeartbeat = 0;
 
-    const redirect = () => {
+    const redirect = (reason: "inactive" | "invalid") => {
       clearAuth();
       queryClient.clear();
-      navigate("/login", { replace: true, state: { inactivityLogout: true } });
+      navigate("/login", { replace: true, state: reason === "inactive" ? { inactivityLogout: true } : { sessionExpired: true } });
     };
-    const finishSession = async () => {
+    const finishSession = async (reason: "inactive" | "invalid") => {
       channel.postMessage("logout");
       try {
         await logout();
       } finally {
-        redirect();
+        redirect(reason);
       }
     };
     const schedule = () => {
       window.clearTimeout(timeoutId);
-      timeoutId = window.setTimeout(() => void finishSession(), timeoutSeconds * 1000);
+      timeoutId = window.setTimeout(() => void finishSession("inactive"), timeoutSeconds * 1000);
     };
     const recordActivity = () => {
       const now = Date.now();
@@ -53,8 +53,11 @@ export function InactivitySessionManager() {
       }
     };
 
-    channel.onmessage = ({ data }) => data === "activity" ? schedule() : data === "logout" ? redirect() : undefined;
-    const unauthorized = () => void finishSession();
+    channel.onmessage = ({ data }) => data === "activity" ? schedule() : data === "logout" ? redirect("invalid") : undefined;
+    const unauthorized = (event: Event) => {
+      const code = (event as CustomEvent<{ code?: string }>).detail?.code;
+      void finishSession(code === "SESSION_INACTIVE" ? "inactive" : "invalid");
+    };
     const events = ["pointerdown", "keydown", "touchstart", "focus"] as const;
     events.forEach((event) => window.addEventListener(event, recordActivity, { passive: true }));
     window.addEventListener("auth:unauthorized", unauthorized);

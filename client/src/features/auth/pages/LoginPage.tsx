@@ -22,6 +22,7 @@ interface LoginLocationState {
   };
   logoutSuccess?: boolean;
   inactivityLogout?: boolean;
+  sessionExpired?: boolean;
 }
 
 export function LoginPage() {
@@ -51,6 +52,7 @@ export function LoginPage() {
   }
 
   const handleLogin = handleSubmit(async (input) => {
+    navigate(location.pathname, { replace: true, state: null });
     try {
       const result = await loginMutation.mutateAsync(input);
       setAuth(result.user, result.accessToken, result.inactivityTimeoutSeconds, result.activityHeartbeatSeconds);
@@ -99,6 +101,12 @@ export function LoginPage() {
           {locationState?.inactivityLogout && (
             <div role="status" className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
               Sesi berakhir karena tidak ada aktivitas. Silakan masuk kembali.
+            </div>
+          )}
+
+          {locationState?.sessionExpired && (
+            <div role="status" className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Sesi tidak valid atau telah berakhir. Silakan masuk kembali.
             </div>
           )}
 

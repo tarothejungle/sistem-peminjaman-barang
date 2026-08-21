@@ -19,8 +19,9 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const url = String(error?.config?.url ?? "");
-    if (error?.response?.status === 401 && !url.includes("/auth/login") && !url.includes("/auth/refresh")) {
-      window.dispatchEvent(new CustomEvent("auth:unauthorized", { detail: error.response.data }));
+    if (error?.response?.status === 401 && !url.includes("/auth/login") && !url.includes("/auth/refresh") && !url.includes("/auth/logout")) {
+      const code = error?.response?.data?.error?.details?.code;
+      window.dispatchEvent(new CustomEvent("auth:unauthorized", { detail: { code } }));
     }
     return Promise.reject(error);
   },
