@@ -118,8 +118,8 @@ export function MainLayout() {
         <div className="flex h-16 items-center border-b border-slate-700/70 px-5">
           <BrandLogo className={`h-9 w-9 shadow-lg shadow-blue-950/30 ${isSidebarCollapsed ? "lg:hidden" : ""}`} />
           <div className={`ml-3 min-w-0 ${isSidebarCollapsed ? "lg:hidden" : ""}`}>
-            <p className="truncate text-sm font-bold tracking-wide text-white">PinjamHub</p>
-            <p className="text-[11px] text-slate-400">Setditjen Binwasnaker</p>
+            <p className="truncate text-sm font-bold tracking-wide text-white">[nama project]</p>
+            <p className="text-[11px] text-slate-400">[deskripski project]</p>
           </div>
           <button
             type="button"

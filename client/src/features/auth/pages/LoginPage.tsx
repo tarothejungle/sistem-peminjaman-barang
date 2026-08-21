@@ -67,8 +67,8 @@ export function LoginPage() {
         <div className="relative flex items-center gap-3">
           <BrandLogo className="h-11 w-11 shadow-lg shadow-blue-950/40" />
           <div>
-            <p className="font-bold tracking-wide">PinjamHub</p>
-            <p className="text-xs text-slate-400">Setditjen Binwasnaker</p>
+            <p className="font-bold tracking-wide">Sistem Peminjaman Barang & Ruang Rapat</p>
+            <p className="text-xs text-slate-400">Satu Sistem Untuk Semua</p>
           </div>
         </div>
         <div className="relative max-w-xl">
@@ -83,7 +83,7 @@ export function LoginPage() {
         <div className="w-full max-w-md">
           <div className="mb-8 flex items-center gap-3 lg:hidden">
             <BrandLogo className="h-10 w-10" />
-            <p className="font-bold tracking-wide text-slate-900">PinjamHub</p>
+            <p className="font-bold tracking-wide text-slate-900">Sistem Peminjaman Barang & Ruang Rapat</p>
           </div>
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600">Selamat datang</p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900">Masuk ke akun Anda</h2>
