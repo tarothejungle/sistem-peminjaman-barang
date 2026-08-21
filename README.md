@@ -112,3 +112,8 @@ cd ../client
 npm run lint                     # oxlint
 npm run build                    # tsc -b && vite build
 ```
+
+## License
+
+MIT — see [LICENSE](LICENSE)
+```
