@@ -43,7 +43,6 @@ Frontend dan backend berada dalam satu repositori. Saat dipakai di production, f
 │   ├── resources/      # Template email dan laporan
 │   ├── routes/         # Route API dan web
 │   └── tests/          # Test backend
-└── docs/               # Dokumentasi teknis dan deployment
 ```
 
 ## Quick Start

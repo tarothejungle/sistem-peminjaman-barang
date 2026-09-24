@@ -15,6 +15,10 @@ docs/siswasnaker-logo.webp
 docs/update.md
 specs/
 .codebase-memory/
+docs/
+be/docs/
+AGENTS.md
+DEPLOYMENT.md
 .env
 .env.*
 .env_*
