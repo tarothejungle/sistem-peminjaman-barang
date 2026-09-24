@@ -1,0 +1,20 @@
+# Defense in depth only.
+#
+# The supported web root is be/public. Uploading this project so that the
+# *repository* root becomes the web root exposes database dumps, .env files, and
+# the source tree. These rules deny that content if the folder is ever served
+# directly; they do not make the repository root a working web root.
+Options -Indexes
+
+<IfModule mod_authz_core.c>
+    <FilesMatch "(^\.|\.(env|sql|dump|bak|backup|sqlite|db|log|key|pem|p12|pfx|yml|yaml|json|lock|md)$)">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+
+<IfModule !mod_authz_core.c>
+    <FilesMatch "(^\.|\.(env|sql|dump|bak|backup|sqlite|db|log|key|pem|p12|pfx|yml|yaml|json|lock|md)$)">
+        Order allow,deny
+        Deny from all
+    </FilesMatch>
+</IfModule>

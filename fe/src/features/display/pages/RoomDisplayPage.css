@@ -1,0 +1,778 @@
+/*
+ * Smart TV wall board. Rendered on LG webOS (Chromium 53-68) and on desktop Chromium
+ * in kiosk mode, always on a 16:9 panel at 1080p or 4K.
+ *
+ * SIZING MODEL — everything is sized in `vh`, nothing in `rem`.
+ * The viewport is height-locked to exactly 100vh, so vh is the one unit that keeps the
+ * layout proportional: 1080p and 4K are the same 16:9 box, so the identical stylesheet
+ * scales pixel-for-pixel between them with no media query and no clamp(). This also
+ * removes the clamp()/min()/max() fallback pairs the previous revision needed, since
+ * those functions only land in Chromium 79 (webOS 6.x) while vh/vw work back to
+ * Chromium 20. Viewports NARROWER than 16:9 (a dev browser window, a 5:4 monitor) would
+ * make vh-derived text overflow horizontally, so one @media (max-aspect-ratio: 16/9)
+ * block at the bottom restates the large type in vw. The vw values are the vh values
+ * times 9/16, so they are exactly equal at 16:9 and shrink continuously below it.
+ *
+ * Legacy notes for this file:
+ *  - CSS Grid needs Chromium 57; webOS 4.x is 53. The board declares grid inside
+ *    @supports and keeps a flex-wrap fallback outside it.
+ *  - `gap` in FLEX layout needs Chromium 84 — never used. Flex rows space themselves
+ *    with adjacent-sibling margins. In GRID, `grid-gap` (57) is emitted alongside
+ *    `gap` (66) so Chromium 57-65 is covered too.
+ *  - `place-items` / `place-content` need Chromium 59 -> written as the longhand pair.
+ *  - `inset` shorthand needs Chromium 87 -> written as top/right/bottom/left.
+ *  - 8-digit hex needs Chromium 62 -> all translucency written as rgba().
+ *  - backdrop-filter needs Chromium 76 and is GPU-expensive on TV silicon -> the
+ *    panels use opaque backgrounds instead.
+ *  - Light/dark colors are local modifier tokens. They do not depend on the app-wide
+ *    [data-theme] attribute, so a shared browser profile cannot change the board by
+ *    accident; the board's own icon control persists its preference separately.
+ */
+
+/*
+ * Toggled on <html> and <body> by useKioskViewport while the board is mounted.
+ * Scoped to a class instead of a bare `html` selector because this stylesheet is
+ * global once its lazy chunk loads — an unscoped rule would leave every other route
+ * in the SPA unscrollable for the rest of the session.
+ */
+html.room-display-lock,
+body.room-display-lock {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+/*
+ * index.css already sets `* { box-sizing: border-box }`, but this board restates it
+ * locally because the property is load-order-critical here rather than cosmetic: under
+ * content-box the 2vh/1.6vw padding is ADDED to `height: 100vh`, the page resolves
+ * ~43px taller than a 1080p viewport, and `overflow: hidden` silently clips the bottom
+ * card row. Owning the declaration keeps the board correct on its own.
+ */
+.room-display,
+.room-display *,
+.room-display *::before,
+.room-display *::after {
+  box-sizing: border-box;
+}
+
+.room-display {
+  --display-ink: #f8fafc;
+  --display-strong: #ffffff;
+  --display-ink-soft: #c7d6e6;
+  --display-ink-faint: #7f94ad;
+  --display-brand: #8ab6dc;
+  --display-line: rgba(125, 165, 205, 0.18);
+  --display-line-strong: rgba(125, 165, 205, 0.32);
+  --display-panel: #0b1a2f;
+  --display-tile: #10233d;
+  --display-slot: rgba(4, 12, 24, 0.45);
+  --display-ok: #22c55e;
+  --display-ok-ink: #7ff0ab;
+  --display-ok-deep: #04240f;
+  --display-ok-soft: rgba(34, 197, 94, 0.14);
+  --display-busy: #fbbf24;
+  --display-busy-ink: #ffd979;
+  --display-busy-deep: #2a1600;
+  --display-busy-soft: rgba(251, 191, 36, 0.14);
+  --display-unit: #ffffff;
+  --display-unit-ink: #13416b;
+  --display-unit-active: #fbbf24;
+  --display-unit-active-ink: #ffffff;
+  --display-danger: #fb7185;
+  --display-page-color: #060e1c;
+  --display-page-image:
+    radial-gradient(circle at 15% -10%, rgba(28, 90, 150, 0.35), rgba(6, 14, 28, 0) 55%),
+    radial-gradient(circle at 88% 6%, rgba(16, 62, 110, 0.28), rgba(6, 14, 28, 0) 45%),
+    linear-gradient(160deg, #071224 0%, #0a1b31 48%, #06101f 100%);
+
+  /* Fixed + explicit viewport box: nothing in the SPA shell can add a scrollbar. */
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  padding: 2vh 1.6vw;
+  overflow: hidden;
+  color: var(--display-ink);
+  background-color: var(--display-page-color);
+  background-image: var(--display-page-image);
+  /*
+   * index.css sets the family on :root, but this board also has to render correctly
+   * when the shell stylesheet has not loaded (kiosk cold start, chunk fetch failure);
+   * without it the browser default serif appears at 40px+ and looks broken.
+   */
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * Light overrides. There is deliberately no `--dark` rule: the base .room-display
+ * block already holds the dark palette, so the modifier the component emits for
+ * dark is a no-op by design rather than an omission.
+ */
+.room-display--light {
+  --display-ink: #0b1f35;
+  --display-strong: #07172a;
+  --display-ink-soft: #2c4964;
+  --display-ink-faint: #526d85;
+  --display-brand: #185f91;
+  --display-line: rgba(18, 67, 105, 0.18);
+  --display-line-strong: rgba(18, 67, 105, 0.32);
+  --display-panel: #ffffff;
+  --display-tile: #f7fbff;
+  --display-slot: #eef6fc;
+  --display-ok: #16a34a;
+  --display-ok-ink: #087431;
+  --display-ok-deep: #ffffff;
+  --display-ok-soft: rgba(22, 163, 74, 0.14);
+  --display-busy: #d97706;
+  --display-busy-ink: #995000;
+  --display-busy-deep: #ffffff;
+  --display-busy-soft: rgba(217, 119, 6, 0.13);
+  --display-unit: #13416b;
+  --display-unit-ink: #ffffff;
+  --display-unit-active: #d97706;
+  --display-unit-active-ink: #ffffff;
+  --display-danger: #be123c;
+  --display-page-color: #e9f2f8;
+  --display-page-image:
+    radial-gradient(circle at 15% -10%, rgba(45, 130, 190, 0.18), rgba(233, 242, 248, 0) 55%),
+    radial-gradient(circle at 88% 6%, rgba(94, 160, 204, 0.16), rgba(233, 242, 248, 0) 45%),
+    linear-gradient(160deg, #f8fbfd 0%, #e9f2f8 48%, #f4f8fb 100%);
+}
+
+.room-display--message {
+  align-items: center;
+  justify-content: center;
+  padding: 6vh 8vw;
+  color: var(--display-ink-soft);
+  font-size: 3vh;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* ---------------------------------------------------------------- header ---- */
+
+.room-display__top {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 0.12vh solid var(--display-line);
+  padding-bottom: 1.6vh;
+}
+
+.room-display__brand {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.room-display__mark {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 7vh;
+  height: 7vh;
+  margin-right: 1.2vw;
+}
+
+.room-display__mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.room-display__brand-text {
+  min-width: 0;
+}
+
+.room-display__title {
+  margin: 0;
+  color: var(--display-strong);
+  font-size: 3.8vh;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.room-display__live {
+  display: flex;
+  align-items: center;
+  margin: 0.9vh 0 0;
+  color: var(--display-ink-faint);
+  font-size: 1.6vh;
+  font-weight: 600;
+}
+
+.room-display__live i {
+  flex: 0 0 auto;
+  width: 1.1vh;
+  height: 1.1vh;
+  margin-right: 0.7vw;
+  border-radius: 50%;
+  background: var(--display-ok);
+  box-shadow: 0 0 0 0.5vh var(--display-ok-soft);
+  animation: room-display-pulse 2s ease-in-out infinite;
+}
+
+.room-display__live--stale {
+  color: var(--display-busy-ink);
+}
+
+.room-display__live--stale i {
+  background: var(--display-danger);
+  box-shadow: 0 0 0 0.5vh rgba(251, 113, 133, 0.18);
+}
+
+.room-display__live span + span {
+  margin-left: 1.2vw;
+  padding-left: 1.2vw;
+  border-left: 0.12vh solid var(--display-line);
+}
+
+.room-display__stamp {
+  color: var(--display-ink-faint);
+  font-weight: 500;
+}
+
+.room-display__clock {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-left: 2vw;
+  text-align: right;
+}
+
+.room-display__clock-line {
+  display: flex;
+  align-items: center;
+}
+
+.room-display__theme-button {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 5.4vh;
+  height: 5.4vh;
+  margin-right: 1vw;
+  border: 0.12vh solid var(--display-line-strong);
+  border-radius: 50%;
+  padding: 0;
+  color: var(--display-brand);
+  background: var(--display-tile);
+  cursor: pointer;
+}
+
+.room-display__theme-button:hover,
+.room-display__theme-button:focus-visible {
+  border-color: var(--display-brand);
+  outline: none;
+  box-shadow: 0 0 0 0.4vh rgba(63, 133, 184, 0.18);
+}
+
+.room-display__theme-button svg {
+  width: 2.8vh;
+  height: 2.8vh;
+}
+
+.room-display__time {
+  color: var(--display-strong);
+  font-size: 8.2vh;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.room-display__date {
+  margin-top: 0.6vh;
+  color: var(--display-brand);
+  font-size: 2.2vh;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------- metrics ---- */
+
+.room-display__metrics {
+  display: flex;
+  flex: 0 0 auto;
+  margin-top: 1.8vh;
+}
+
+.room-display__metric {
+  display: flex;
+  flex: 1 1 25%;
+  align-items: center;
+  min-width: 0;
+  border: 0.12vh solid var(--display-line);
+  border-left-width: 0.5vh;
+  border-radius: 1.2vh;
+  padding: 1.5vh 1.2vw;
+  background: var(--display-tile);
+}
+
+.room-display__metric + .room-display__metric {
+  margin-left: 1.1vw;
+}
+
+.room-display__metric svg {
+  flex: 0 0 auto;
+  width: 3.4vh;
+  height: 3.4vh;
+  margin-right: 1vw;
+}
+
+.room-display__metric--total { border-left-color: var(--display-brand); }
+.room-display__metric--total svg { color: var(--display-brand); }
+.room-display__metric--free { border-left-color: var(--display-ok); }
+.room-display__metric--free svg { color: var(--display-ok-ink); }
+.room-display__metric--busy { border-left-color: var(--display-busy); }
+.room-display__metric--busy svg { color: var(--display-busy-ink); }
+.room-display__metric--plan { border-left-color: #8b9ff5; }
+.room-display__metric--plan svg { color: #a7b6ff; }
+
+.room-display__metric-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.room-display__metric-value {
+  color: var(--display-strong);
+  font-size: 4.6vh;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.room-display__metric-label {
+  margin-top: 0.4vh;
+  color: var(--display-ink-soft);
+  font-size: 1.8vh;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ----------------------------------------------------------------- board ---- */
+
+/*
+ * Fallback path for Chromium 53-56 (webOS 4.x), which has no CSS Grid: flex-wrap at
+ * percentage widths reproduce the component-selected 1-4 column layout without
+ * gutters, the cards' own borders keeping them legible as tiles. The board keeps
+ * `overflow: hidden`, so if an old engine mis-resolves the percentage heights the
+ * failure mode is clipped card content — never a scrollbar.
+ */
+.room-display__board {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-content: stretch;
+  min-height: 0;
+  height: 100%;
+  margin-top: 1.8vh;
+  overflow: hidden;
+}
+
+.room-display__card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  border: 0.12vh solid var(--display-line);
+  border-radius: 1.4vh;
+  padding: 2vh 1.4vw;
+  overflow: hidden;
+  background: var(--display-panel);
+}
+
+.room-display__board--columns-2 .room-display__card { width: 50%; }
+.room-display__board--columns-3 .room-display__card { width: 33.3333%; }
+.room-display__board--columns-4 .room-display__card { width: 25%; }
+.room-display__board--rows-2 .room-display__card { height: 50%; }
+
+@supports (display: grid) {
+  .room-display__board {
+    display: grid;
+    /* grid-gap for Chromium 57-65, gap for 66+. */
+    grid-gap: 1.6vh 1.1vw;
+    gap: 1.6vh 1.1vw;
+    height: auto;
+  }
+
+  .room-display__board .room-display__card {
+    width: auto;
+    height: auto;
+  }
+
+  .room-display__board--columns-1 { grid-template-columns: minmax(0, 1fr); }
+  .room-display__board--columns-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .room-display__board--columns-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .room-display__board--columns-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .room-display__board--rows-1 { grid-template-rows: minmax(0, 1fr); }
+  .room-display__board--rows-2 { grid-template-rows: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Seven or eight rooms trade a little card density for a stable 4x2 wall board. */
+.room-display__board--dense .room-display__card {
+  padding: 1.5vh 1vw;
+}
+
+.room-display__board--dense .room-display__badge {
+  padding: 0.55vh 0.7vw;
+  font-size: 1.4vh;
+}
+
+.room-display__board--dense .room-display__card-name {
+  margin-top: 1vh;
+  font-size: 2.7vh;
+}
+
+.room-display__board--dense .room-display__card-meta {
+  margin-top: 0.7vh;
+  font-size: 1.55vh;
+}
+
+.room-display__board--dense .room-display__card-meta span + span {
+  margin-left: 0.7vw;
+  padding-left: 0.7vw;
+}
+
+.room-display__board--dense .room-display__card-meta svg {
+  width: 1.7vh;
+  height: 1.7vh;
+}
+
+.room-display__board--dense .room-display__card-body {
+  margin-top: 1vh;
+}
+
+.room-display__board--dense .room-display__ready {
+  padding: 1vh 0.7vw;
+}
+
+.room-display__board--dense .room-display__ready svg {
+  width: 3.4vh;
+  height: 3.4vh;
+}
+
+.room-display__board--dense .room-display__ready strong {
+  margin-top: 0.6vh;
+  font-size: 2vh;
+}
+
+.room-display__board--dense .room-display__ready span,
+.room-display__board--dense .room-display__agenda-row {
+  font-size: 1.5vh;
+}
+
+.room-display__board--dense .room-display__agenda-detail strong {
+  font-size: 1.3vh;
+}
+
+.room-display__board--dense .room-display__agenda-unit {
+  font-size: 1.15vh;
+}
+
+.room-display__pager {
+  flex: 0 0 auto;
+  margin-top: 0.8vh;
+  color: var(--display-ink-faint);
+  font-size: 1.5vh;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* Status rail down the left edge, the only cue readable from well past 5 m. */
+.room-display__card::before {
+  position: absolute;
+  top: 0;
+  right: auto;
+  bottom: 0;
+  left: 0;
+  width: 0.7vh;
+  content: "";
+}
+
+.room-display__card--free::before { background: var(--display-ok); }
+.room-display__card--free { box-shadow: inset 0 0 6vh rgba(34, 197, 94, 0.07); }
+.room-display__card--busy::before { background: var(--display-busy); }
+.room-display__card--busy { box-shadow: inset 0 0 6vh rgba(251, 191, 36, 0.08); }
+
+.room-display__card-head {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+.room-display__badge {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.7vh 1vw;
+  font-size: 1.7vh;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.room-display__card--free .room-display__badge {
+  color: var(--display-ok-deep);
+  background: var(--display-ok);
+}
+
+.room-display__card--busy .room-display__badge {
+  color: var(--display-busy-deep);
+  background: var(--display-busy);
+}
+
+.room-display__card-name {
+  flex: 0 0 auto;
+  margin: 1.4vh 0 0;
+  color: var(--display-strong);
+  font-size: 3.4vh;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.room-display__card-meta {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 1vh 0 0;
+  color: var(--display-ink-soft);
+  font-size: 1.9vh;
+  font-weight: 600;
+}
+
+.room-display__card-meta span {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.room-display__card-meta span + span {
+  margin-left: 1.1vw;
+  padding-left: 1.1vw;
+  border-left: 0.12vh solid var(--display-line-strong);
+}
+
+.room-display__card-meta svg {
+  flex: 0 0 auto;
+  width: 2.1vh;
+  height: 2.1vh;
+  margin-right: 0.45vw;
+  color: var(--display-brand);
+}
+
+/*
+ * Absorbs every spare pixel in the card so no tile ever shows dead space: it holds
+ * either the agenda rows or the ready-state block, and both stretch to fill it.
+ */
+.room-display__card-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  margin-top: 1.4vh;
+  overflow: hidden;
+}
+
+.room-display__ready {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  border: 0.12vh dashed var(--display-line-strong);
+  border-radius: 1.2vh;
+  padding: 1.6vh 1vw;
+  background: var(--display-slot);
+  text-align: center;
+}
+
+.room-display__ready svg {
+  flex: 0 0 auto;
+  width: 4.4vh;
+  height: 4.4vh;
+  color: var(--display-ok);
+}
+
+.room-display__ready strong {
+  margin-top: 0.9vh;
+  color: var(--display-ok-ink);
+  font-size: 2.4vh;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.room-display__ready span {
+  margin-top: 0.4vh;
+  color: var(--display-ink-faint);
+  font-size: 1.7vh;
+  font-weight: 600;
+}
+
+/*
+ * Column flex rather than a plain list so the rows divide the card body between them
+ * instead of stacking at natural height and leaving a gap underneath.
+ */
+.room-display__agenda {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: min-content;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  list-style: none;
+}
+
+.room-display__agenda-row {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  min-height: 0;
+  border-radius: 0.9vh;
+  padding: 0.4vh 0.7vw;
+  background: var(--display-slot);
+  font-size: 1.8vh;
+}
+
+.room-display__agenda-row + .room-display__agenda-row {
+  margin-top: 0.7vh;
+}
+
+.room-display__agenda-unit {
+  display: inline-block;
+  align-self: center;
+  flex: 0 0 44%;
+  max-width: 44%;
+  min-width: 0;
+  margin-right: 0.7vw;
+  border-radius: 0.7vh;
+  padding: 0.45vh 0.55vw;
+  overflow-wrap: break-word;
+  color: var(--display-unit-ink);
+  background: var(--display-unit);
+  font-size: 1.55vh;
+  font-weight: 800;
+  line-height: 1.15;
+  white-space: normal;
+}
+
+.room-display__agenda-detail time {
+  flex: 0 0 auto;
+  margin-bottom: 0.3vh;
+  color: var(--display-brand);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.room-display__agenda-detail {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+  min-width: 0;
+  min-height: 0;
+}
+
+.room-display__agenda-detail strong {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--display-ink-soft);
+  font-size: 1.75vh;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: normal;
+}
+
+.room-display__agenda-row--active {
+  background: var(--display-busy-soft);
+}
+
+.room-display__agenda-row--active time,
+.room-display__agenda-row--active .room-display__agenda-detail strong {
+  color: var(--display-busy-ink);
+}
+
+.room-display__agenda-unit--active {
+  color: var(--display-unit-active-ink);
+  background: var(--display-unit-active);
+}
+
+.room-display__agenda-more {
+  flex: 0 0 auto;
+  margin-top: 0.7vh;
+  color: var(--display-ink-faint);
+  font-size: 1.6vh;
+  font-weight: 600;
+  text-align: center;
+}
+
+.room-display__empty {
+  width: 100%;
+  margin: 0;
+  align-self: center;
+  color: var(--display-ink-faint);
+  font-size: 2.6vh;
+  font-weight: 600;
+  text-align: center;
+}
+
+@keyframes room-display-pulse {
+  50% { opacity: 0.35; }
+}
+
+/*
+ * Viewports at or narrower than 16:9. Each value is its vh counterpart times 9/16,
+ * so the two rule sets agree exactly at 16:9 and the type shrinks with the width
+ * below it instead of overflowing.
+ */
+@media (max-aspect-ratio: 16 / 9) {
+  .room-display__title { font-size: 2.14vw; }
+  .room-display__live { font-size: 0.9vw; }
+  .room-display__time { font-size: 4.61vw; }
+  .room-display__date { font-size: 1.24vw; }
+  .room-display__metric-value { font-size: 2.59vw; }
+  .room-display__metric-label { font-size: 1.01vw; }
+  .room-display__card-name { font-size: 1.91vw; }
+  .room-display__card-meta { font-size: 1.07vw; }
+  .room-display__badge { font-size: 0.96vw; }
+  .room-display__ready strong { font-size: 1.35vw; }
+  .room-display__agenda-row { font-size: 1.01vw; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .room-display__live i { animation: none; }
+}
