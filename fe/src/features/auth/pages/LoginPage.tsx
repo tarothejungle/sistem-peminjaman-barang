@@ -138,8 +138,8 @@ export function LoginPage({ mode = "standard" }: { mode?: "standard" | "maintena
           <h1 id="login-form-heading" className="text-2xl font-bold text-ink">
             {isMaintenance ? "Masuk sebagai Administrator" : "Masuk ke Portal"}
           </h1>
-          <p className="mt-1 max-w-xs text-[9px] font-bold uppercase leading-4 text-accent">
-            Sistem Peminjaman Ruang Rapat &amp; Kendaraan
+          <p className="mt-1 max-w-xs text-xs font-bold uppercase leading-5 tracking-[0.16em] text-accent">
+            PinjamHub
           </p>
           {isMaintenance && (
             <p className="mt-3 max-w-sm rounded-xl border border-warn-line bg-warn-soft px-4 py-2.5 text-xs leading-5 text-ink-2">
@@ -287,7 +287,7 @@ export function LoginPage({ mode = "standard" }: { mode?: "standard" | "maintena
           </div>
 
           {authConfig.data?.turnstileEnabled && authConfig.data.turnstileSiteKey && (
-            <div className="my-1 flex justify-center rounded-xl border border-line bg-inset-soft p-2">
+            <div className="my-1 rounded-xl border border-line bg-inset-soft p-2">
               <TurnstileWidget
                 siteKey={authConfig.data.turnstileSiteKey}
                 resetKey={captchaResetKey}

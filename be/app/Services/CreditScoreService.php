@@ -13,13 +13,12 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Applies the borrower credibility score to PEMOHON item and vehicle loans only.
+ * Applies the borrower credibility score to PEMOHON room and vehicle bookings.
  *
  * The score starts at 100 (see UserCreditEvent::STARTING_SCORE) and moves by a
- * flat delta per returned item loan: -5 when the return lands after the due
- * moment, +5 when it lands on or before it. Room bookings never affect the
- * score. A single loan can therefore never push the score past MAXIMUM_SCORE
- * (100), and the database floor stops it from going negative.
+ * flat delta per completed booking: -5 when completion lands after the allowed
+ * moment, +5 when it lands on or before it. A single booking can never push the
+ * score past MAXIMUM_SCORE (100), and the database floor stops it from going negative.
  */
 final class CreditScoreService
 {
@@ -31,10 +30,6 @@ final class CreditScoreService
      */
     public function recordReturn(Booking $booking, CarbonImmutable $returnedAt): ?UserCreditEvent
     {
-        if ($booking->resource_type !== ResourceType::ITEM) {
-            return null;
-        }
-
         return DB::transaction(function () use ($booking, $returnedAt): ?UserCreditEvent {
             if (UserCreditEvent::query()->where('booking_id', $booking->id)->exists()) {
                 return null;
@@ -45,8 +40,8 @@ final class CreditScoreService
                 return null;
             }
 
-            $due = $booking->alternative_end_time ?? $booking->end_time;
-            $onTime = $returnedAt->lessThanOrEqualTo($due);
+            $due = $this->dueAt($booking);
+            $onTime = $this->isOnTime($booking, $returnedAt);
             $delta = $onTime ? UserCreditEvent::ON_TIME_DELTA : UserCreditEvent::LATE_DELTA;
             $current = (int) ($user->credit_score ?? UserCreditEvent::STARTING_SCORE);
             $scoreAfter = min(UserCreditEvent::MAXIMUM_SCORE, max(0, $current + $delta));
@@ -71,12 +66,8 @@ final class CreditScoreService
      */
     public function preview(Booking $booking, CarbonImmutable $returnedAt): ?array
     {
-        if ($booking->resource_type !== ResourceType::ITEM) {
-            return null;
-        }
-
-        $due = $booking->alternative_end_time ?? $booking->end_time;
-        $onTime = $returnedAt->lessThanOrEqualTo($due);
+        $due = $this->dueAt($booking);
+        $onTime = $this->isOnTime($booking, $returnedAt);
         $delta = $onTime ? UserCreditEvent::ON_TIME_DELTA : UserCreditEvent::LATE_DELTA;
 
         return [
@@ -84,8 +75,27 @@ final class CreditScoreService
             'delta' => $delta,
             'dueAt' => $due,
             'message' => $onTime
-                ? 'Pengembalian tepat waktu: skor kredibilitas +'.UserCreditEvent::ON_TIME_DELTA.'.'
-                : 'Pengembalian melewati jatuh tempo: skor kredibilitas '.UserCreditEvent::LATE_DELTA.'.',
+                ? 'Peminjaman selesai tepat waktu: skor kredibilitas +'.UserCreditEvent::ON_TIME_DELTA.'.'
+                : 'Peminjaman selesai melewati batas waktu: skor kredibilitas '.UserCreditEvent::LATE_DELTA.'.',
         ];
+    }
+
+    private function dueAt(Booking $booking): CarbonImmutable
+    {
+        return ($booking->alternative_end_time ?? $booking->end_time)->toImmutable();
+    }
+
+    private function isOnTime(Booking $booking, CarbonImmutable $returnedAt): bool
+    {
+        if ($booking->resource_type !== ResourceType::ROOM) {
+            return $returnedAt->lessThanOrEqualTo($this->dueAt($booking));
+        }
+        if ($booking->auto_confirmed_at !== null) {
+            return false;
+        }
+
+        $graceMinutes = max(0, (int) config('jwt.booking_room_auto_confirm_minutes', 0));
+
+        return $returnedAt->lessThanOrEqualTo($this->dueAt($booking)->addMinutes($graceMinutes));
     }
 }

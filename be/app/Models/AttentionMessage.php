@@ -27,6 +27,14 @@ final class AttentionMessage extends Model
 
     public const PLACEMENT_BEFORE_LOGIN = 'BEFORE_LOGIN';
 
+    public const SIGNAL_NOTICE = 'NOTICE';
+
+    public const SIGNAL_CAUTION = 'CAUTION';
+
+    public const SIGNAL_WARNING = 'WARNING';
+
+    public const SIGNAL_DANGER = 'DANGER';
+
     /** Every role, plus "ALL" for a notice addressed to the whole office. */
     public static function audiences(): array
     {
@@ -39,7 +47,12 @@ final class AttentionMessage extends Model
         return [self::PLACEMENT_AFTER_LOGIN, self::PLACEMENT_BEFORE_LOGIN];
     }
 
-    protected $fillable = ['id', 'title', 'message', 'audience_role', 'placement', 'is_active', 'sort_order', 'created_by'];
+    public static function signalWords(): array
+    {
+        return [self::SIGNAL_NOTICE, self::SIGNAL_CAUTION, self::SIGNAL_WARNING, self::SIGNAL_DANGER];
+    }
+
+    protected $fillable = ['id', 'title', 'message', 'signal_word', 'audience_role', 'placement', 'is_active', 'sort_order', 'created_by'];
 
     protected $hidden = ['created_by'];
 

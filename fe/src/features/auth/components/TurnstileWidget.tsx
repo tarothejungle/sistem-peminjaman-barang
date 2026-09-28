@@ -73,5 +73,5 @@ export function TurnstileWidget({ siteKey, resetKey, onTokenChange }: TurnstileW
     };
   }, [onTokenChange, resetKey, siteKey]);
 
-  return <div ref={containerRef} className="login__turnstile" aria-label="Verifikasi keamanan" />;
+  return <div ref={containerRef} className="login__turnstile w-full" aria-label="Verifikasi keamanan" />;
 }

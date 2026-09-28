@@ -79,7 +79,7 @@ export function ProfileDashboard() {
           </div>
           <h2 className="mt-5 text-xl font-black text-ink">{user.fullName}</h2>
           <p className="mt-1 text-xs font-bold uppercase tracking-[0.16em] text-ink-4">{getRoleLabel(user.role)}</p>
-          {user.role === Role.PEMOHON && <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-accent-line bg-accent-soft px-3.5 py-1.5 text-accent"><Gauge size={15} aria-hidden="true" /><span className="text-[11px] font-bold uppercase tracking-wide">Skor kredibilitas kendaraan</span><span className="text-sm font-black">{user.creditScore ?? "-"}</span></div>}
+          {user.role === Role.PEMOHON && <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-accent-line bg-accent-soft px-3.5 py-1.5 text-accent"><Gauge size={15} aria-hidden="true" /><span className="text-[11px] font-bold uppercase tracking-wide">Skor kredibilitas peminjaman</span><span className="text-sm font-black">{user.creditScore ?? "-"}</span></div>}
           <div className="mt-auto grid w-full gap-3 pt-8">
             <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => selectPhoto(event.target.files?.[0])} />
             <button type="button" disabled={isPhotoPending} onClick={() => fileInputRef.current?.click()} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-accent-solid px-4 text-sm font-bold text-onaccent shadow-lg shadow-accent-glow transition hover:bg-accent-hover disabled:opacity-50"><Camera size={17} />{upload.isPending ? "Mengunggah..." : "Upload Foto"}</button>

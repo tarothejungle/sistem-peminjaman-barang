@@ -1,4 +1,4 @@
-import { FileSpreadsheet, LayoutDashboard, X } from "lucide-react";
+import { BookOpen, CircleOff, FileSpreadsheet, LayoutDashboard, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AttentionDialog } from "../../features/attention/components/AttentionDialog";
@@ -13,7 +13,9 @@ import { ProfileMenu } from "./ProfileMenu";
 
 const kabagNavigation: NotchItemData[] = [
   { id: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "/user-guide", label: "User Guide", icon: BookOpen },
   { id: "/admin/reports", label: "Laporan", icon: FileSpreadsheet },
+  { id: "/admin/disabled-menus", label: "Disable Menu", icon: CircleOff },
 ];
 
 export function KabagNotchLayout() {
@@ -44,7 +46,7 @@ export function KabagNotchLayout() {
   const logo = (
     <div className="flex h-9 items-center gap-2">
       <BrandLogo className="size-8" />
-      <span className="hidden max-w-64 truncate text-sm font-bold tracking-wide sm:inline">Sistem Peminjaman Ruang Rapat & Kendaraan</span>
+      <span className="hidden max-w-64 truncate text-sm font-bold tracking-wide sm:inline">PinjamHub</span>
     </div>
   );
 

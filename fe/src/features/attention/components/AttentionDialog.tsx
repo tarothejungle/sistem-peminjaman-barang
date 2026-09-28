@@ -1,6 +1,7 @@
 import { Info } from "lucide-react";
 import { useState } from "react";
 import { useAttentionFeed } from "../api/useAttentionMessages";
+import { SIGNAL_WORD_STYLES } from "./signalWord";
 
 /**
  * The post-login briefing. It only appears when an administrator has published
@@ -30,14 +31,19 @@ export function AttentionDialog({ open, onClose }: { open: boolean; onClose: () 
           </div>
         </div>
         <div className="max-h-[60vh] space-y-4 overflow-y-auto p-5">
-          {messages.map((message) => (
-            <article key={message.id} className="rounded-xl border border-line bg-inset-soft p-4">
+          {messages.map((message) => {
+            const signal = SIGNAL_WORD_STYLES[message.signalWord];
+            const SignalIcon = signal.icon;
+            return (
+            <article key={message.id} className={`rounded-xl border p-4 ${signal.border} ${signal.background}`}>
+              <div className={`mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] ${signal.text}`}><SignalIcon size={16} aria-hidden="true" />{signal.label}</div>
               <h3 className="font-bold text-ink">{message.title}</h3>
               <div className="mt-2 space-y-2 text-sm leading-6 text-ink-2">
                 {message.message.split("\n").map((line) => line.trim()).filter(Boolean).map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
               </div>
             </article>
-          ))}
+            );
+          })}
         </div>
         <div className="flex justify-end border-t border-line p-5">
           <button type="button" onClick={close} className="rounded-xl bg-accent-solid px-5 py-2.5 text-sm font-bold text-onaccent shadow-lg shadow-accent-glow transition hover:bg-accent-hover">Saya mengerti</button>

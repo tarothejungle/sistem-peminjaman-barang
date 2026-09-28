@@ -93,6 +93,23 @@ describe("BookingModal", () => {
     expect(start).toHaveValue(tomorrowInJakarta());
     expect(start).toHaveAttribute("min", tomorrowInJakarta());
   });
+  it("keeps all three sessions selectable across multiple days", () => {
+    render(<BookingModal resource={{ type: "ROOM", room }} onClose={vi.fn()} onSuccess={vi.fn()} />);
+
+    const start = tomorrowInJakarta();
+    const end = new Date(`${start}T12:00:00Z`);
+    end.setUTCDate(end.getUTCDate() + 2);
+    fireEvent.change(screen.getByLabelText("Tanggal selesai"), { target: { value: end.toISOString().slice(0, 10) } });
+
+    const afternoon = screen.getByRole("button", { name: /Siang/ });
+    expect(screen.getByRole("button", { name: /Pagi/ })).toBeEnabled();
+    expect(afternoon).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Sehari penuh/ })).toBeEnabled();
+    fireEvent.click(afternoon);
+    expect(afternoon).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText(/Surat resmi unit kerja wajib/)).toBeInTheDocument();
+  });
+
   it("asks a vehicle for a Surat Tugas right above the Keperluan field", () => {
     render(<BookingModal resource={{ type: "ITEM", item: vehicle }} onClose={vi.fn()} onSuccess={vi.fn()} />);
 

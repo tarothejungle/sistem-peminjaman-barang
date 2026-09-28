@@ -46,7 +46,7 @@ describe("ProfileDashboard", () => {
 
     render(<ProfileDashboard />);
 
-    expect(screen.getByText("Skor kredibilitas kendaraan")).toBeInTheDocument();
+    expect(screen.getByText("Skor kredibilitas peminjaman")).toBeInTheDocument();
     expect(screen.getByText("95")).toBeInTheDocument();
   });
 
@@ -55,7 +55,7 @@ describe("ProfileDashboard", () => {
 
     render(<ProfileDashboard />);
 
-    expect(screen.queryByText("Skor kredibilitas kendaraan")).not.toBeInTheDocument();
+    expect(screen.queryByText("Skor kredibilitas peminjaman")).not.toBeInTheDocument();
     expect(screen.queryByText("105")).not.toBeInTheDocument();
   });
 

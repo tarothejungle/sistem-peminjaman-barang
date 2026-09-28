@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Enums\RoomBookingSlot;
-use App\Exceptions\ApiException;
 use App\Models\RoomBookingSetting;
 use Carbon\CarbonImmutable;
 
@@ -27,10 +26,6 @@ final class RoomBookingScheduleService
 
     public function range(string $startDate, string $endDate, RoomBookingSlot $slot): array
     {
-        if ($startDate !== $endDate && $slot !== RoomBookingSlot::FULL_DAY) {
-            throw new ApiException('Peminjaman lebih dari satu hari wajib menggunakan kategori sehari penuh', 400);
-        }
-
         $settings = $this->settings();
         [$startTime, $endTime] = match ($slot) {
             RoomBookingSlot::MORNING => [$settings->morning_start_time, $settings->morning_end_time],

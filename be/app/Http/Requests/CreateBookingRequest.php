@@ -58,9 +58,6 @@ class CreateBookingRequest extends StrictRequest
                 if ($this->requiresDocumentForMultiDay() && ! $this->hasFile('document')) {
                     $validator->errors()->add('document', 'Surat resmi PDF wajib dilampirkan untuk peminjaman lebih dari satu hari');
                 }
-                if ($this->input('roomSlot') !== RoomBookingSlot::FULL_DAY->value) {
-                    $validator->errors()->add('roomSlot', 'Peminjaman lebih dari satu hari wajib menggunakan kategori sehari penuh');
-                }
             }
         });
     }

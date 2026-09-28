@@ -51,6 +51,7 @@ final class AttentionMessageService
         return AttentionMessage::create([
             'title' => trim($data['title']),
             'message' => trim($data['message']),
+            'signal_word' => $data['signalWord'] ?? AttentionMessage::SIGNAL_NOTICE,
             'audience_role' => $data['audienceRole'],
             'is_active' => $data['isActive'] ?? true,
             'placement' => $data['placement'] ?? AttentionMessage::PLACEMENT_AFTER_LOGIN,
@@ -65,6 +66,7 @@ final class AttentionMessageService
         $message->update(array_filter([
             'title' => isset($data['title']) ? trim($data['title']) : null,
             'message' => isset($data['message']) ? trim($data['message']) : null,
+            'signal_word' => $data['signalWord'] ?? null,
             'audience_role' => $data['audienceRole'] ?? null,
             'is_active' => $data['isActive'] ?? null,
             'placement' => $data['placement'] ?? null,

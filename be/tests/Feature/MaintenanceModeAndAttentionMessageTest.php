@@ -41,11 +41,18 @@ final class MaintenanceModeAndAttentionMessageTest extends TestCase
             $table->uuid('id')->primary();
             $table->string('title');
             $table->text('message');
+            $table->string('signal_word', 20)->default('NOTICE');
             $table->string('audience_role');
             $table->boolean('is_active')->default(true);
             $table->string('placement', 20)->default('AFTER_LOGIN');
             $table->integer('sort_order')->default(0);
             $table->uuid('created_by')->nullable();
+            $table->timestamps();
+        });
+        Schema::create('disabled_menus', function (Blueprint $table): void {
+            $table->string('menu_key')->primary();
+            $table->boolean('is_disabled')->default(false);
+            $table->uuid('updated_by')->nullable();
             $table->timestamps();
         });
         Schema::create('maintenance_settings', function (Blueprint $table): void {
@@ -153,7 +160,7 @@ final class MaintenanceModeAndAttentionMessageTest extends TestCase
 
     public function test_only_administrators_manage_attention_messages(): void
     {
-        $payload = ['title' => 'Info baru', 'message' => 'Isi informasi baru untuk pengguna.', 'audienceRole' => Role::PEMOHON->value];
+        $payload = ['title' => 'Info baru', 'message' => 'Isi informasi baru untuk pengguna.', 'signalWord' => AttentionMessage::SIGNAL_DANGER, 'audienceRole' => Role::PEMOHON->value];
 
         $this->withToken($this->token(Role::PEMOHON, $this->pemohonId))
             ->postJson('/api/v1/attention-messages/manage', $payload)
@@ -164,6 +171,7 @@ final class MaintenanceModeAndAttentionMessageTest extends TestCase
             ->assertCreated()
             ->json('data');
         $this->assertTrue($created['isActive']);
+        $this->assertSame(AttentionMessage::SIGNAL_DANGER, $created['signalWord']);
         $this->assertSame(AttentionMessage::PLACEMENT_AFTER_LOGIN, $created['placement']);
 
         $this->withToken($this->token(Role::KASUBAG_UMUM, $this->kasubagId))
@@ -175,6 +183,55 @@ final class MaintenanceModeAndAttentionMessageTest extends TestCase
             ->deleteJson('/api/v1/attention-messages/manage/'.$created['id'])
             ->assertOk();
         $this->assertDatabaseMissing('attention_messages', ['id' => $created['id']]);
+    }
+
+    public function test_signal_word_migration_preserves_an_edited_seed_notice(): void
+    {
+        $id = 'a7c1f0e2-5b4d-4c9a-9f31-2e6d8b7a4c10';
+        DB::table('attention_messages')->insert([
+            'id' => $id,
+            'title' => 'Informasi kantor',
+            'message' => 'Isi ini sudah diubah administrator.',
+            'audience_role' => Role::PEMOHON->value,
+            'is_active' => true,
+            'placement' => AttentionMessage::PLACEMENT_AFTER_LOGIN,
+            'sort_order' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $migration = require database_path('migrations/2026_09_28_000000_add_signal_words_and_disabled_menus.php');
+        $migration->up();
+
+        $this->assertDatabaseHas('attention_messages', [
+            'id' => $id,
+            'title' => 'Informasi kantor',
+            'message' => 'Isi ini sudah diubah administrator.',
+            'signal_word' => AttentionMessage::SIGNAL_NOTICE,
+        ]);
+    }
+
+    public function test_only_administrators_can_disable_known_menus(): void
+    {
+        $payload = ['disabledMenuKeys' => ['room-booking', 'maintenance']];
+
+        $this->withToken($this->token(Role::PEMOHON, $this->pemohonId))
+            ->putJson('/api/v1/disabled-menus', $payload)
+            ->assertForbidden();
+
+        $this->withToken($this->token(Role::KASUBAG_UMUM, $this->kasubagId))
+            ->putJson('/api/v1/disabled-menus', $payload)
+            ->assertOk()
+            ->assertJsonPath('data.disabledMenuKeys', ['maintenance', 'room-booking']);
+
+        $this->withToken($this->token(Role::PEMOHON, $this->pemohonId))
+            ->getJson('/api/v1/disabled-menus')
+            ->assertOk()
+            ->assertJsonPath('data.disabledMenuKeys', ['maintenance', 'room-booking']);
+
+        $this->withToken($this->token(Role::KASUBAG_UMUM, $this->kasubagId))
+            ->putJson('/api/v1/disabled-menus', ['disabledMenuKeys' => ['unknown-menu']])
+            ->assertStatus(400);
     }
 
     public function test_maintenance_status_is_public_and_administrator_controlled(): void

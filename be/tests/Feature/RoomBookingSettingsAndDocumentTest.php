@@ -114,7 +114,7 @@ final class RoomBookingSettingsAndDocumentTest extends TestCase
             ->assertJsonPath('error.message', 'Data tidak valid');
     }
 
-    public function test_room_booking_rejects_invalid_slot_and_non_full_day_multi_day_range(): void
+    public function test_room_booking_rejects_invalid_slot_but_accepts_any_configured_multi_day_session(): void
     {
         $payload = [
             'resourceType' => ResourceType::ROOM->value,
@@ -129,13 +129,21 @@ final class RoomBookingSettingsAndDocumentTest extends TestCase
             ->assertBadRequest()
             ->assertJsonPath('error.message', 'Data tidak valid');
 
-        $payload['roomSlot'] = 'MORNING';
-        $payload['endDate'] = now()->addDays(2)->format('Y-m-d');
-        $payload['document'] = UploadedFile::fake()->createWithContent('surat.pdf', '%PDF-valid');
+        $date = now('Asia/Jakarta')->addDays(2)->format('Y-m-d');
+        $endDate = now('Asia/Jakarta')->addDays(3)->format('Y-m-d');
+        $schedule = app(RoomBookingScheduleService::class);
+        foreach (RoomBookingSlot::cases() as $slot) {
+            [$start, $end] = $schedule->range($date, $endDate, $slot);
+            $this->assertSame($date, $start->setTimezone('Asia/Jakarta')->format('Y-m-d'));
+            $this->assertSame($endDate, $end->setTimezone('Asia/Jakarta')->format('Y-m-d'));
+        }
 
-        $this->withToken($this->token(Role::PEMOHON))->post('/api/v1/bookings', $payload, ['Accept' => 'application/json'])
+        $payload['roomSlot'] = 'MORNING';
+        $payload['startDate'] = $date;
+        $payload['endDate'] = $endDate;
+        $this->withToken($this->token(Role::PEMOHON))->postJson('/api/v1/bookings', $payload)
             ->assertBadRequest()
-            ->assertJsonPath('error.details.roomSlot.0', 'Peminjaman lebih dari satu hari wajib menggunakan kategori sehari penuh');
+            ->assertJsonPath('error.details.document.0', 'Surat resmi PDF wajib dilampirkan untuk peminjaman lebih dari satu hari');
     }
 
     public function test_document_download_is_private_and_role_scoped(): void

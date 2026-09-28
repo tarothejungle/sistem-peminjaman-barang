@@ -10,10 +10,14 @@ export type AttentionAudience = Role | typeof ATTENTION_AUDIENCE_ALL;
 export const ATTENTION_PLACEMENTS = ["AFTER_LOGIN", "BEFORE_LOGIN"] as const;
 export type AttentionPlacement = (typeof ATTENTION_PLACEMENTS)[number];
 
+export const ATTENTION_SIGNAL_WORDS = ["NOTICE", "CAUTION", "WARNING", "DANGER"] as const;
+export type AttentionSignalWord = (typeof ATTENTION_SIGNAL_WORDS)[number];
+
 export interface AttentionMessage {
   id: string;
   title: string;
   message: string;
+  signalWord: AttentionSignalWord;
   audienceRole: AttentionAudience;
   isActive: boolean;
   placement: AttentionPlacement;
@@ -25,6 +29,7 @@ export interface AttentionMessage {
 export interface AttentionMessageInput {
   title: string;
   message: string;
+  signalWord?: AttentionSignalWord;
   audienceRole: AttentionAudience;
   isActive?: boolean;
   placement?: AttentionPlacement;

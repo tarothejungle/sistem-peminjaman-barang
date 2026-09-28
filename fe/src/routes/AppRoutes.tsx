@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "../components/common/ProtectedRoute";
 import { MaintenanceGate } from "../features/maintenance/components/MaintenanceGate";
+import { DisabledMenuGate } from "../features/disabled-menus/components/DisabledMenuGate";
 import { useAuthStore } from "../store/authStore";
 import { LoginPage } from "../features/auth/pages/LoginPage";
 import { SessionExpiredPage } from "../features/auth/pages/SessionExpiredPage";
@@ -9,6 +10,7 @@ import { ADMINISTRATOR_ROLES, RESOURCE_MANAGER_ROLES, Role } from "../types";
 
 const MainLayout = lazy(() => import("../components/layout/MainLayout").then((module) => ({ default: module.MainLayout })));
 const DashboardPage = lazy(() => import("../features/dashboard/pages/DashboardPage").then((module) => ({ default: module.DashboardPage })));
+const UserGuidePage = lazy(() => import("../features/dashboard/pages/UserGuidePage").then((module) => ({ default: module.UserGuidePage })));
 const MyBookingsPage = lazy(() => import("../features/bookings/pages/MyBookingsPage").then((module) => ({ default: module.MyBookingsPage })));
 const ForgotPasswordPage = lazy(() => import("../features/auth/pages/ForgotPasswordPage").then((module) => ({ default: module.ForgotPasswordPage })));
 const ResetPasswordPage = lazy(() => import("../features/auth/pages/ResetPasswordPage").then((module) => ({ default: module.ResetPasswordPage })));
@@ -21,6 +23,7 @@ const ManageUsersPage = lazy(() => import("../features/admin/pages/ManageUsersPa
 const RoomBookingSettingsPage = lazy(() => import("../features/admin/pages/RoomBookingSettingsPage").then((module) => ({ default: module.RoomBookingSettingsPage })));
 const ManageAttentionMessagesPage = lazy(() => import("../features/admin/pages/ManageAttentionMessagesPage").then((module) => ({ default: module.ManageAttentionMessagesPage })));
 const ManageMaintenancePage = lazy(() => import("../features/admin/pages/ManageMaintenancePage").then((module) => ({ default: module.ManageMaintenancePage })));
+const ManageDisabledMenusPage = lazy(() => import("../features/admin/pages/ManageDisabledMenusPage").then((module) => ({ default: module.ManageDisabledMenusPage })));
 const RoomDisplayPage = lazy(() => import("../features/display/pages/RoomDisplayPage").then((module) => ({ default: module.RoomDisplayPage })));
 const RoomCatalogPage = lazy(() => import("../features/catalog/pages/RoomCatalogPage").then((module) => ({ default: module.RoomCatalogPage })));
 const ItemCatalogPage = lazy(() => import("../features/catalog/pages/ItemCatalogPage").then((module) => ({ default: module.ItemCatalogPage })));
@@ -66,30 +69,42 @@ export function AppRoutes() {
           <Route element={<Suspense fallback={<AuthPageFallback />}><MainLayout /></Suspense>}>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route element={<ProtectedRoute allowedRoles={[...ALL_ROLES]} />}>
-              <Route path="/dashboard" element={<Suspense fallback={<AdminPageFallback />}><DashboardPage /></Suspense>} />
-              <Route path="/peminjaman-ruang-rapat" element={<Suspense fallback={<AdminPageFallback />}><RoomCatalogPage /></Suspense>} />
-              <Route path="/peminjaman-barang" element={<Suspense fallback={<AdminPageFallback />}><ItemCatalogPage /></Suspense>} />
-              <Route path="/my-bookings" element={<Suspense fallback={<AdminPageFallback />}><MyBookingsPage /></Suspense>} />
+               <Route path="/dashboard" element={<Suspense fallback={<AdminPageFallback />}><DashboardPage /></Suspense>} />
+               <Route path="/user-guide" element={<Suspense fallback={<AdminPageFallback />}><UserGuidePage /></Suspense>} />
+              <Route element={<DisabledMenuGate />}>
+                <Route path="/peminjaman-ruang-rapat" element={<Suspense fallback={<AdminPageFallback />}><RoomCatalogPage /></Suspense>} />
+                <Route path="/peminjaman-barang" element={<Suspense fallback={<AdminPageFallback />}><ItemCatalogPage /></Suspense>} />
+                <Route path="/my-bookings" element={<Suspense fallback={<AdminPageFallback />}><MyBookingsPage /></Suspense>} />
+              </Route>
             </Route>
 
             <Route element={<ProtectedRoute allowedRoles={[...OVERSIGHT_ROLES]} />}>
-              <Route path="/admin/approvals" element={<Suspense fallback={<AdminPageFallback />}><AdminApprovalPage /></Suspense>} />
-              <Route path="/admin/reports" element={<Suspense fallback={<AdminPageFallback />}><BookingReportPage /></Suspense>} />
+              <Route element={<DisabledMenuGate />}>
+                <Route path="/admin/approvals" element={<Suspense fallback={<AdminPageFallback />}><AdminApprovalPage /></Suspense>} />
+                <Route path="/admin/reports" element={<Suspense fallback={<AdminPageFallback />}><BookingReportPage /></Suspense>} />
+              </Route>
             </Route>
             <Route element={<ProtectedRoute allowedRoles={[Role.PJ_RUANGAN, Role.KASUBAG_UMUM]} />}>
-              <Route path="/admin/room-booking-cancellations" element={<Suspense fallback={<AdminPageFallback />}><RoomBookingCancellationPage /></Suspense>} />
+              <Route element={<DisabledMenuGate />}>
+                <Route path="/admin/room-booking-cancellations" element={<Suspense fallback={<AdminPageFallback />}><RoomBookingCancellationPage /></Suspense>} />
+              </Route>
             </Route>
             <Route element={<ProtectedRoute allowedRoles={[...RESOURCE_MANAGER_ROLES]} />}>
-              <Route path="/admin/rooms" element={<Suspense fallback={<AdminPageFallback />}><ManageRoomsPage /></Suspense>} />
-              <Route path="/admin/items" element={<Suspense fallback={<AdminPageFallback />}><ManageItemsPage /></Suspense>} />
+              <Route element={<DisabledMenuGate />}>
+                <Route path="/admin/rooms" element={<Suspense fallback={<AdminPageFallback />}><ManageRoomsPage /></Suspense>} />
+                <Route path="/admin/items" element={<Suspense fallback={<AdminPageFallback />}><ManageItemsPage /></Suspense>} />
+              </Route>
             </Route>
             <Route element={<ProtectedRoute allowedRoles={[...ADMINISTRATOR_ROLES]} />}>
-              <Route path="/admin/room-managers" element={<Suspense fallback={<AdminPageFallback />}><ManageRoomManagersPage /></Suspense>} />
-              <Route path="/admin/department-heads" element={<Suspense fallback={<AdminPageFallback />}><ManageDepartmentHeadsPage /></Suspense>} />
-              <Route path="/admin/users" element={<Suspense fallback={<AdminPageFallback />}><ManageUsersPage /></Suspense>} />
-              <Route path="/admin/room-booking-settings" element={<Suspense fallback={<AdminPageFallback />}><RoomBookingSettingsPage /></Suspense>} />
-              <Route path="/admin/attention-messages" element={<Suspense fallback={<AdminPageFallback />}><ManageAttentionMessagesPage /></Suspense>} />
-              <Route path="/admin/maintenance" element={<Suspense fallback={<AdminPageFallback />}><ManageMaintenancePage /></Suspense>} />
+              <Route path="/admin/disabled-menus" element={<Suspense fallback={<AdminPageFallback />}><ManageDisabledMenusPage /></Suspense>} />
+              <Route element={<DisabledMenuGate />}>
+                <Route path="/admin/room-managers" element={<Suspense fallback={<AdminPageFallback />}><ManageRoomManagersPage /></Suspense>} />
+                <Route path="/admin/department-heads" element={<Suspense fallback={<AdminPageFallback />}><ManageDepartmentHeadsPage /></Suspense>} />
+                <Route path="/admin/users" element={<Suspense fallback={<AdminPageFallback />}><ManageUsersPage /></Suspense>} />
+                <Route path="/admin/room-booking-settings" element={<Suspense fallback={<AdminPageFallback />}><RoomBookingSettingsPage /></Suspense>} />
+                <Route path="/admin/attention-messages" element={<Suspense fallback={<AdminPageFallback />}><ManageAttentionMessagesPage /></Suspense>} />
+                <Route path="/admin/maintenance" element={<Suspense fallback={<AdminPageFallback />}><ManageMaintenancePage /></Suspense>} />
+              </Route>
             </Route>
           </Route>
         </Route>

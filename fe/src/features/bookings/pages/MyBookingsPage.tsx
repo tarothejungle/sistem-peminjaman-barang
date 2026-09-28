@@ -46,7 +46,7 @@ export function MyBookingsPage() {
           </div>
           {isPemohon && (
             <div className="rounded-xl border border-accent-line bg-accent-soft px-4 py-3 text-accent">
-              <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider"><Coins size={13} aria-hidden="true" /> Skor kredibilitas kendaraan</p>
+              <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider"><Coins size={13} aria-hidden="true" /> Skor kredibilitas peminjaman</p>
               <p className="mt-1 text-xl font-bold">{user?.creditScore ?? "-"}</p>
             </div>
           )}

@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { SuccessToast } from "../../../components/common/SuccessToast";
-import { ATTENTION_PLACEMENTS, useCreateAttentionMessage, useDeleteAttentionMessage, useManagedAttentionMessages, useUpdateAttentionMessage, type AttentionAudience, type AttentionMessage, type AttentionPlacement } from "../../attention/api/useAttentionMessages";
+import { ATTENTION_PLACEMENTS, ATTENTION_SIGNAL_WORDS, useCreateAttentionMessage, useDeleteAttentionMessage, useManagedAttentionMessages, useUpdateAttentionMessage, type AttentionAudience, type AttentionMessage, type AttentionPlacement } from "../../attention/api/useAttentionMessages";
+import { SIGNAL_WORD_STYLES } from "../../attention/components/signalWord";
 import { Role } from "../../../types";
 import { getRoleLabel } from "../../../utils/roleLabel";
 import { getAdminErrorMessage } from "./adminPage.utils";
@@ -15,6 +16,7 @@ const audienceOptions = [Role.PEMOHON, Role.PJ_RUANGAN, Role.KABAG_UMUM, Role.KA
 const schema = z.object({
   title: z.string().trim().min(3, "Judul minimal 3 karakter").max(150),
   message: z.string().trim().min(5, "Isi informasi minimal 5 karakter").max(2000),
+  signalWord: z.enum(ATTENTION_SIGNAL_WORDS),
   audienceRole: z.enum(audienceOptions),
   isActive: z.boolean(),
   placement: z.enum(ATTENTION_PLACEMENTS),
@@ -55,9 +57,10 @@ export function ManageAttentionMessagesPage() {
     {messagesQuery.data?.length === 0 && <EmptyState label="Belum ada informasi yang dibuat" />}
 
     {messagesQuery.data && messagesQuery.data.length > 0 && <div className="overflow-hidden rounded-2xl border border-line bg-panel shadow-2xl backdrop-blur-xl"><div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-sm">
-      <thead className="border-b border-line bg-inset-soft text-xs uppercase tracking-wide text-ink-3"><tr><th className="px-5 py-4">Judul</th><th className="px-5 py-4">Isi</th><th className="px-5 py-4">Untuk</th><th className="px-5 py-4">Muncul</th><th className="px-5 py-4">Status</th><th className="px-5 py-4">Diperbarui</th><th className="px-5 py-4 text-right">Aksi</th></tr></thead>
+      <thead className="border-b border-line bg-inset-soft text-xs uppercase tracking-wide text-ink-3"><tr><th className="px-5 py-4">Signal word</th><th className="px-5 py-4">Judul</th><th className="px-5 py-4">Isi</th><th className="px-5 py-4">Untuk</th><th className="px-5 py-4">Muncul</th><th className="px-5 py-4">Status</th><th className="px-5 py-4">Diperbarui</th><th className="px-5 py-4 text-right">Aksi</th></tr></thead>
       <tbody className="divide-y divide-line">
         {messagesQuery.data.map((message) => <tr key={message.id} className="align-top transition hover:bg-hover">
+          <td className="px-5 py-4"><span className={`rounded-lg border px-2.5 py-1 text-xs font-bold ${SIGNAL_WORD_STYLES[message.signalWord].border} ${SIGNAL_WORD_STYLES[message.signalWord].background} ${SIGNAL_WORD_STYLES[message.signalWord].text}`}>{SIGNAL_WORD_STYLES[message.signalWord].label}</span></td>
           <td className="px-5 py-4 font-bold text-ink">{message.title}</td>
           <td className="max-w-md px-5 py-4 text-ink-3"><p className="line-clamp-3 whitespace-pre-line">{message.message}</p></td>
           <td className="px-5 py-4 text-ink-3">{audienceLabel(message.audienceRole)}</td>
@@ -84,6 +87,7 @@ function AttentionFormModal({ message, onClose, onSaved }: { message: AttentionM
     defaultValues: {
       title: message?.title ?? "",
       message: message?.message ?? "",
+      signalWord: message?.signalWord ?? "NOTICE",
       audienceRole: message?.audienceRole ?? Role.PEMOHON,
       isActive: message?.isActive ?? true,
       placement: message?.placement ?? "AFTER_LOGIN",
@@ -104,9 +108,10 @@ function AttentionFormModal({ message, onClose, onSaved }: { message: AttentionM
   return <div className="fixed inset-0 z-[70] grid place-items-center overflow-y-auto bg-overlay px-4 py-6 backdrop-blur-sm"><div role="dialog" aria-modal="true" className="w-full max-w-2xl rounded-2xl border border-line bg-panel-strong shadow-2xl shadow-shade backdrop-blur-xl">
     <div className="border-b border-line p-5"><h2 className="text-lg font-bold text-ink">{message ? "Edit informasi" : "Tambah informasi"}</h2><p className="mt-1 text-sm text-ink-3">Tulis dengan bahasa yang natural, seperti menyapa rekan kerja langsung.</p></div>
     <form onSubmit={submit} className="space-y-4 p-5">
-      <label className="block text-sm font-semibold text-ink-2">Judul<input type="text" placeholder="Contoh: Skor Kredibilitas Peminjaman Kendaraan" className={inputClass} {...register("title")} />{errors.title && <span className="mt-1 block font-normal text-danger">{errors.title.message}</span>}</label>
+      <label className="block text-sm font-semibold text-ink-2">Judul<input type="text" placeholder="Contoh: Skor Kredibilitas Peminjaman" className={inputClass} {...register("title")} />{errors.title && <span className="mt-1 block font-normal text-danger">{errors.title.message}</span>}</label>
       <label className="block text-sm font-semibold text-ink-2">Isi informasi<span className="ml-2 text-xs font-normal text-ink-4">Pisahkan paragraf dengan enter</span><textarea rows={8} className={`${inputClass} resize-y`} {...register("message")} />{errors.message && <span className="mt-1 block font-normal text-danger">{errors.message.message}</span>}</label>
       <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block text-sm font-semibold text-ink-2">Signal word<select className={inputClass} {...register("signalWord")}>{ATTENTION_SIGNAL_WORDS.map((signalWord) => <option key={signalWord} value={signalWord}>{SIGNAL_WORD_STYLES[signalWord].label}</option>)}</select>{errors.signalWord && <span className="mt-1 block font-normal text-danger">{errors.signalWord.message}</span>}</label>
         <label className="block text-sm font-semibold text-ink-2">Ditujukan untuk<select className={inputClass} {...register("audienceRole")}>{audienceOptions.map((audience) => <option key={audience} value={audience}>{audienceLabel(audience)}</option>)}</select>{errors.audienceRole && <span className="mt-1 block font-normal text-danger">{errors.audienceRole.message}</span>}</label>
         <label className="block text-sm font-semibold text-ink-2">Waktu tampil<select className={inputClass} {...register("placement")}><option value="AFTER_LOGIN">Setelah berhasil login (pop up)</option><option value="BEFORE_LOGIN">Sebelum login (di halaman masuk)</option></select>{errors.placement && <span className="mt-1 block font-normal text-danger">{errors.placement.message}</span>}</label>
         <label className="block text-sm font-semibold text-ink-2">Urutan tampil<span className="ml-2 text-xs font-normal text-ink-4">Angka kecil tampil lebih dulu</span><input type="number" min={0} max={999} className={inputClass} {...register("sortOrder")} />{errors.sortOrder && <span className="mt-1 block font-normal text-danger">{errors.sortOrder.message}</span>}</label>

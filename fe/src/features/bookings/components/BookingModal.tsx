@@ -35,9 +35,6 @@ const schema = z.object({
   if (data.startDate && data.endDate && data.startDate > data.endDate) context.addIssue({ code: "custom", path: ["endDate"], message: "Tanggal selesai tidak boleh lebih awal" });
   if (data.resourceType === "ITEM" && data.quantity === undefined) context.addIssue({ code: "custom", path: ["quantity"], message: "Jumlah unit wajib diisi" });
   if (data.resourceType === "ROOM" && (!data.workUnit || data.workUnit.length < 2)) context.addIssue({ code: "custom", path: ["workUnit"], message: "Unit kerja wajib diisi" });
-  if (data.resourceType === "ROOM" && data.startDate && data.endDate && data.endDate > data.startDate) {
-    if (data.roomSlot !== "FULL_DAY") context.addIssue({ code: "custom", path: ["roomSlot"], message: "Peminjaman lintas hari wajib memakai kategori sehari penuh" });
-  }
   const file = data.document?.[0];
   if (file && file.type !== "application/pdf") context.addIssue({ code: "custom", path: ["document"], message: "File harus berformat PDF" });
   if (file && file.size > 10 * 1024 * 1024) context.addIssue({ code: "custom", path: ["document"], message: "Ukuran PDF maksimal 10 MB" });
@@ -69,21 +66,17 @@ export function BookingModal({ resource, booking = null, onClose, onSuccess }: P
   const resourceId = resource?.type === "ROOM" ? resource.room.id : resource?.item.id;
   const multiDay = resource?.type === "ROOM" && Boolean(watched.startDate && watched.endDate && watched.endDate > watched.startDate);
 
-  useEffect(() => {
-    if (multiDay && watched.roomSlot !== "FULL_DAY") setValue("roomSlot", "FULL_DAY", { shouldValidate: true });
-  }, [multiDay, setValue, watched.roomSlot]);
-
   const availabilityInput = useMemo<BookingAvailabilityInput | null>(() => {
     if (!resource || !watched.startDate || !watched.endDate || watched.startDate > watched.endDate) return null;
     if (resource.type === "ROOM") {
-      if (!watched.roomSlot || multiDay && watched.roomSlot !== "FULL_DAY") return null;
+      if (!watched.roomSlot) return null;
       return { resourceType: "ROOM", roomId: resource.room.id, startDate: watched.startDate, endDate: watched.endDate, roomSlot: watched.roomSlot, bookingId: booking?.id };
     }
     if (!watched.quantity || watched.quantity < 1) return null;
     const now = new Date(); const start = localDateTime(watched.startDate, "00:00"); const end = localDateTime(watched.endDate, "23:59");
     if (end <= now) return null;
     return { resourceType: "ITEM", itemId: resource.item.id, quantity: watched.quantity, startTime: (start < now ? now : start).toISOString(), endTime: end.toISOString(), bookingId: booking?.id };
-  }, [booking?.id, multiDay, resource, watched.endDate, watched.quantity, watched.roomSlot, watched.startDate]);
+  }, [booking?.id, resource, watched.endDate, watched.quantity, watched.roomSlot, watched.startDate]);
   const availability = useBookingAvailability(availabilityInput);
 
   const initializeForm = useEffectEvent(() => {
@@ -155,8 +148,8 @@ export function BookingModal({ resource, booking = null, onClose, onSuccess }: P
       <div className="grid gap-4 sm:grid-cols-2"><Field label={isRoom ? "Tanggal mulai" : "Tanggal pinjam"} error={errors.startDate?.message} icon={<CalendarDays size={16} />}><input type="date" min={earliestDate} className={inputClass} {...register("startDate")} /></Field><Field label={isRoom ? "Tanggal selesai" : "Tanggal kembali"} error={errors.endDate?.message} icon={<CalendarDays size={16} />}><input type="date" min={watched.startDate || earliestDate} className={inputClass} {...register("endDate")} /></Field></div>
       {isRoom && resource.room.name.trim().toLocaleLowerCase("id-ID") === "ruang rapat utama" && <div className="rounded-xl border border-warn-line bg-warn-soft p-4 text-sm leading-6 text-warn"><p className="font-bold text-warn">Catatan khusus Ruang Rapat Utama</p><p className="mt-1">Notes : diinformasikan kepada peminjam bahwa jadwal peminjaman bersifat menyesuaikan. Peminjam harus menyetujui opsi alokasi ruangan alternatif apabila terjadi penggunaan mendadak/bersamaan oleh Direktur Jenderal.</p></div>}
       {isRoom ? <>
-        <Field label="Kategori jam" error={errors.roomSlot?.message} icon={<Clock3 size={16} />}><RoomSlotPicker settings={settings.data} value={watched.roomSlot} lockedTo={multiDay ? "FULL_DAY" : undefined} onSelect={(slot) => setValue("roomSlot", slot, { shouldDirty: true, shouldValidate: true })} /><input type="hidden" {...register("roomSlot")} /></Field>
-        {multiDay && <div className="rounded-xl border border-warn-line bg-warn-soft p-4 text-sm text-warn"><p className="font-bold">Peminjaman lintas hari memakai kategori sehari penuh.</p><p className="mt-1 text-warn">Surat resmi unit kerja wajib menjadi bukti dan bahan pertimbangan persetujuan.</p></div>}
+        <Field label="Kategori jam" error={errors.roomSlot?.message} icon={<Clock3 size={16} />}><RoomSlotPicker settings={settings.data} value={watched.roomSlot} onSelect={(slot) => setValue("roomSlot", slot, { shouldDirty: true, shouldValidate: true })} /><input type="hidden" {...register("roomSlot")} /></Field>
+        {multiDay && <div className="rounded-xl border border-warn-line bg-warn-soft p-4 text-sm text-warn"><p className="font-bold">Pilih kategori jam untuk rentang peminjaman lintas hari.</p><p className="mt-1 text-warn">Surat resmi unit kerja wajib menjadi bukti dan bahan pertimbangan persetujuan.</p></div>}
         {multiDay && <Field label={booking?.documentOriginalName ? "Ganti surat resmi (opsional, PDF maksimal 10 MB)" : "Surat resmi (PDF, maksimal 10 MB)"} error={errors.document?.message} icon={<FileText size={16} />}><input type="file" accept="application/pdf,.pdf" className={inputClass} {...register("document")} />{booking?.documentOriginalName && <span className="mt-1 block text-xs font-normal text-ink-3">File saat ini: {booking.documentOriginalName}</span>}</Field>}
       </> : <Field label={`Jumlah unit (maks. ${resource.item.totalStock})`} error={errors.quantity?.message}><input type="number" min={1} max={resource.item.totalStock} className={inputClass} {...register("quantity")} /></Field>}
       {!isRoom && <Field label={isVehicle ? "Surat Tugas (PDF, wajib)" : "Surat Tugas (PDF, opsional)"} error={errors.suratTugas?.message} icon={<FileText size={16} />}><input type="file" accept="application/pdf,.pdf" className={inputClass} {...register("suratTugas")} />{isVehicle && !booking?.suratTugasOriginalName && <span className="mt-1 block text-xs font-normal text-ink-3">Peminjaman kendaraan wajib melampirkan Surat Tugas.</span>}{booking?.suratTugasOriginalName && <span className="mt-1 block text-xs font-normal text-ink-3">File saat ini: {booking.suratTugasOriginalName}</span>}</Field>}

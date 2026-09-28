@@ -11,7 +11,7 @@ export function SessionExpiredPage() {
         <div className="mx-auto flex w-fit items-center gap-3">
           <BrandLogo className="h-11 w-11" />
           <div className="text-left">
-            <p className="text-base font-bold leading-5 text-ink">Sistem Peminjaman Ruang Rapat & Kendaraan</p>
+            <p className="text-base font-bold leading-5 text-ink">PinjamHub</p>
             <p className="text-[10px] uppercase tracking-widest text-accent">Kementerian Ketenagakerjaan</p>
           </div>
         </div>

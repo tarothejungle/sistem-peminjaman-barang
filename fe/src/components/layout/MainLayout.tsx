@@ -4,6 +4,7 @@ import {
   ClipboardCheck,
   FileSpreadsheet,
   LayoutDashboard,
+  BookOpen,
   Megaphone,
   Menu,
   PanelLeftClose,
@@ -16,6 +17,7 @@ import {
   Clock3,
   Wrench,
   Ban,
+  CircleOff,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
@@ -34,35 +36,37 @@ import { ThemeSwitcher } from "./ThemeSwitcher";
 
 const navigation = [
   { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
+  { label: "User Guide", to: "/user-guide", icon: BookOpen },
 ] as const;
 
 const submissionNavigation = [
-  { label: "Peminjaman Ruang Rapat", to: "/peminjaman-ruang-rapat", icon: PanelsTopLeft },
-  { label: "Peminjaman Kendaraan", to: "/peminjaman-barang", icon: Boxes },
-  { label: "Status Peminjaman", to: "/my-bookings", icon: Archive },
+  { key: "room-booking", label: "Peminjaman Ruang Rapat", to: "/peminjaman-ruang-rapat", icon: PanelsTopLeft },
+  { key: "vehicle-booking", label: "Peminjaman Kendaraan", to: "/peminjaman-barang", icon: Boxes },
+  { key: "booking-status", label: "Status Peminjaman", to: "/my-bookings", icon: Archive },
 ] as const;
 
 const masterDataNavigation = [
-  { label: "Data Kabag & Kasubag", to: "/admin/department-heads", icon: ShieldCheck },
-  { label: "Data PJ Ruangan", to: "/admin/room-managers", icon: UserCog },
-  { label: "Data User", to: "/admin/users", icon: Users },
-  { label: "Pengaturan Jam Ruangan", to: "/admin/room-booking-settings", icon: Clock3 },
+  { key: "department-heads", label: "Data Kabag & Kasubag", to: "/admin/department-heads", icon: ShieldCheck },
+  { key: "room-managers", label: "Data PJ Ruangan", to: "/admin/room-managers", icon: UserCog },
+  { key: "users", label: "Data User", to: "/admin/users", icon: Users },
+  { key: "room-booking-settings", label: "Pengaturan Jam Ruangan", to: "/admin/room-booking-settings", icon: Clock3 },
 ] as const;
 
 const pengelolaanNavigation = [
-  { label: "Kelola Ruangan", to: "/admin/rooms", icon: PanelsTopLeft },
-  { label: "Kelola Kendaraan", to: "/admin/items", icon: Boxes },
+  { key: "rooms", label: "Kelola Ruangan", to: "/admin/rooms", icon: PanelsTopLeft },
+  { key: "vehicles", label: "Kelola Kendaraan", to: "/admin/items", icon: Boxes },
 ] as const;
 
 const systemNavigation = [
-  { label: "Informasi & Perhatian", to: "/admin/attention-messages", icon: Megaphone },
-  { label: "Mode Maintenance", to: "/admin/maintenance", icon: Wrench },
+  { key: "attention-messages", label: "Informasi & Perhatian", to: "/admin/attention-messages", icon: Megaphone },
+  { key: "maintenance", label: "Mode Maintenance", to: "/admin/maintenance", icon: Wrench },
+  { key: null, label: "Disable Menu", to: "/admin/disabled-menus", icon: CircleOff },
 ] as const;
 
 const approvalNavigation = [
-  { label: "Persetujuan Peminjaman", to: "/admin/approvals", icon: ClipboardCheck },
-  { label: "Pembatalan Ruang Rapat", to: "/admin/room-booking-cancellations", icon: Ban },
-  { label: "Laporan Peminjaman", to: "/admin/reports", icon: FileSpreadsheet },
+  { key: "approvals", label: "Persetujuan Peminjaman", to: "/admin/approvals", icon: ClipboardCheck },
+  { key: "room-cancellations", label: "Pembatalan Ruang Rapat", to: "/admin/room-booking-cancellations", icon: Ban },
+  { key: "reports", label: "Laporan Peminjaman", to: "/admin/reports", icon: FileSpreadsheet },
 ] as const;
 
 function getPageTitle(pathname: string): string {
@@ -162,7 +166,7 @@ function SidebarLayout() {
               className={`h-9 w-9 ${isSidebarCollapsed ? "lg:hidden" : ""}`}
             />
             <div className={`ml-3 min-w-0 ${isSidebarCollapsed ? "lg:hidden" : ""}`}>
-              <p className="truncate text-base font-bold tracking-wide text-ink">Sistem Peminjaman Ruang Rapat & Kendaraan</p>
+              <p className="truncate text-base font-bold tracking-wide text-ink">PinjamHub</p>
               <p className="text-[10px] text-ink-3">Kementerian Ketenagakerjaan</p>
             </div>
             <button

@@ -17,6 +17,7 @@ final class AttentionMessageRequest extends StrictRequest
         return [
             'title' => [$required, 'string', 'regex:/\S/', 'min:3', 'max:150'],
             'message' => [$required, 'string', 'regex:/\S/', 'min:5', 'max:2000'],
+            'signalWord' => ['sometimes', Rule::in(AttentionMessage::signalWords())],
             'audienceRole' => [$required, Rule::in(AttentionMessage::audiences())],
             'isActive' => ['sometimes', 'boolean'],
             'placement' => ['sometimes', Rule::in(AttentionMessage::placements())],
@@ -31,6 +32,6 @@ final class AttentionMessageRequest extends StrictRequest
 
     protected function allowedFields(): array
     {
-        return ['title', 'message', 'audienceRole', 'isActive', 'placement', 'sortOrder'];
+        return ['title', 'message', 'signalWord', 'audienceRole', 'isActive', 'placement', 'sortOrder'];
     }
 }

@@ -4,6 +4,7 @@ use App\Http\Controllers\AttentionMessageController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\BookingReportController;
+use App\Http\Controllers\DisabledMenuController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\LoginActivityController;
 use App\Http\Controllers\MaintenanceSettingController;
@@ -84,12 +85,14 @@ Route::middleware('jwt')->group(function () use ($resourceManagers): void {
 
     /** Notices shown after login; the feed is role-scoped, the CRUD is not. */
     Route::get('/attention-messages', [AttentionMessageController::class, 'feed']);
+    Route::get('/disabled-menus', [DisabledMenuController::class, 'index']);
     Route::middleware('role:KABAG_UMUM,KASUBAG_UMUM')->group(function (): void {
         Route::get('/attention-messages/manage', [AttentionMessageController::class, 'index']);
         Route::post('/attention-messages/manage', [AttentionMessageController::class, 'store']);
         Route::put('/attention-messages/manage/{id}', [AttentionMessageController::class, 'update']);
         Route::delete('/attention-messages/manage/{id}', [AttentionMessageController::class, 'destroy']);
         Route::put('/maintenance', [MaintenanceSettingController::class, 'update']);
+        Route::put('/disabled-menus', [DisabledMenuController::class, 'update']);
     });
 
     Route::middleware('role:KABAG_UMUM,KASUBAG_UMUM')->controller(ManagedUserController::class)->group(function (): void {

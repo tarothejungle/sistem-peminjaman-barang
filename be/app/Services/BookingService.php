@@ -298,6 +298,7 @@ final class BookingService
                 'returned_at' => $finishedAt,
                 'auto_confirmed_at' => $now,
             ]);
+            $this->credits()->recordReturn($booking, $now);
 
             $localEnd = $finishedAt->setTimezone($timezone);
             $this->notifications()->owner(
@@ -620,8 +621,7 @@ final class BookingService
      * Administrators pick a room, a date, and one of the sessions registered in
      * "Pengaturan Jam Ruangan"; the server derives the timestamps so a client can
      * never submit hours outside the configured sessions. A relocated booking
-     * keeps the day span of the original request, so a multi-day booking stays
-     * multi-day and therefore still has to use the full-day session.
+     * keeps the day span of the original request while allowing any configured session.
      */
     private function normalizeAlternativeSchedule(Booking $booking, array $data): array
     {

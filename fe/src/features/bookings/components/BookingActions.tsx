@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { apiErrorMessage } from "../../../lib/apiError";
-import { jakartaDateKey, todayInJakarta } from "../../../lib/datetime";
+import { todayInJakarta } from "../../../lib/datetime";
 import { BookingStatus, Role, canApproveBookings, type Booking } from "../../../types";
 import { useRooms } from "../../rooms/api/useRooms";
 import { useRoomBookingSettings } from "../../settings/api/useRoomBookingSettings";
@@ -215,11 +215,9 @@ function TextNotesModal({ booking, mode, isPending, error, onClose, onReject, on
 function AlternativeModal({ booking, isPending, error, onClose, onAlternative }: NotesModalProps) {
   const rooms = useRooms();
   const settings = useRoomBookingSettings();
-  /** A multi-day request keeps its span, and a span longer than a day is full-day only. */
-  const lockedSlot = isMultiDay(booking) ? "FULL_DAY" : undefined;
   const { control, register, setValue, handleSubmit, formState: { errors } } = useForm<AlternativeForm>({
     resolver: zodResolver(alternativeSchema),
-    defaultValues: { alternativeRoomId: "", alternativeDate: "", alternativeRoomSlot: lockedSlot ?? matchRoomSlot(booking.startTime, booking.endTime, settings.data) },
+    defaultValues: { alternativeRoomId: "", alternativeDate: "", alternativeRoomSlot: matchRoomSlot(booking.startTime, booking.endTime, settings.data) },
   });
   const selectedSlot = useWatch({ control, name: "alternativeRoomSlot" });
   const submit = handleSubmit(async (values) => {
@@ -237,11 +235,11 @@ function AlternativeModal({ booking, isPending, error, onClose, onAlternative }:
         <label className="block text-sm font-semibold text-ink-2">Tanggal<input type="date" min={todayInJakarta()} className="mt-2 w-full rounded-xl border border-line bg-inset px-3 py-2.5 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent-ring" {...register("alternativeDate")} />{errors.alternativeDate && <span className="mt-1 block text-xs font-normal text-danger">{errors.alternativeDate.message}</span>}</label>
         <div className="block text-sm font-semibold text-ink-2">
           <span className="flex items-center gap-2"><Clock3 size={16} aria-hidden="true" />Kategori jam</span>
-          <RoomSlotPicker settings={settings.data} value={selectedSlot} lockedTo={lockedSlot} onSelect={(slot) => setValue("alternativeRoomSlot", slot, { shouldDirty: true, shouldValidate: true })} />
+          <RoomSlotPicker settings={settings.data} value={selectedSlot} onSelect={(slot) => setValue("alternativeRoomSlot", slot, { shouldDirty: true, shouldValidate: true })} />
           <input type="hidden" {...register("alternativeRoomSlot")} />
           {errors.alternativeRoomSlot && <span className="mt-1 block text-xs font-normal text-danger">{errors.alternativeRoomSlot.message}</span>}
         </div>
-        <p className="rounded-xl border border-line bg-inset-soft p-3 text-xs leading-5 text-ink-3">{lockedSlot ? "Peminjaman lintas hari memakai kategori sehari penuh dan mempertahankan jumlah hari pengajuan awal." : "Kategori jam mengikuti sesi yang terdaftar pada Pengaturan Jam Ruangan."}</p>
+        <p className="rounded-xl border border-line bg-inset-soft p-3 text-xs leading-5 text-ink-3">Kategori jam mengikuti sesi yang terdaftar pada Pengaturan Jam Ruangan. Jumlah hari pengajuan awal tetap dipertahankan.</p>
         {error && <ModalError error={error} />}
         <ModalFooter isPending={isPending || rooms.isLoading || rooms.isError || settings.isLoading} onClose={onClose} submitLabel="Kirim alternatif" pendingLabel="Mengirim..." tone="amber" />
       </form>
@@ -271,12 +269,4 @@ function isMainMeetingRoom(booking: Booking): boolean {
 
 function bookingHasEnded(booking: Booking, currentTime: number): boolean {
   return new Date(booking.alternativeEndTime ?? booking.endTime).getTime() <= currentTime;
-}
-
-/**
- * A relocated booking keeps the day span of the original request, so the lock
- * mirrors the server: a span longer than one day is full-day only.
- */
-function isMultiDay(booking: Booking): boolean {
-  return jakartaDateKey(booking.startTime) !== jakartaDateKey(booking.endTime);
 }

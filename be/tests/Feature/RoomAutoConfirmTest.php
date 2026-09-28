@@ -33,6 +33,7 @@ final class RoomAutoConfirmTest extends TestCase
             $table->uuid('id')->primary();
             $table->string('role');
             $table->integer('credit_score')->default(100);
+            $table->timestamps();
         });
         $this->userId = (string) Str::uuid();
         DB::table('users')->insert([
@@ -125,8 +126,13 @@ final class RoomAutoConfirmTest extends TestCase
         $this->assertSame($end->toDateTimeString(), $booking->returned_at->toDateTimeString());
         $this->assertNotNull($booking->auto_confirmed_at);
 
-        $this->assertDatabaseCount('user_credit_events', 0);
-        $this->assertSame(100, (int) DB::table('users')->where('id', $this->userId)->value('credit_score'));
+        $this->assertDatabaseHas('user_credit_events', [
+            'booking_id' => $bookingId,
+            'delta' => -5,
+            'score_after' => 95,
+            'reason' => 'RETURNED_LATE',
+        ]);
+        $this->assertSame(95, (int) DB::table('users')->where('id', $this->userId)->value('credit_score'));
 
         $this->assertDatabaseHas('user_notifications', [
             'booking_id' => $bookingId,

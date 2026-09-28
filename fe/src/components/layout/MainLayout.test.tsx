@@ -16,6 +16,14 @@ vi.mock("../../features/notifications/components/NotificationMenu", () => ({
   NotificationMenu: () => <div>Menu notifikasi</div>,
 }));
 
+const { useDisabledMenus } = vi.hoisted(() => ({
+  useDisabledMenus: vi.fn(() => ({ data: { disabledMenuKeys: [] as string[] } })),
+}));
+vi.mock("../../features/disabled-menus/api/useDisabledMenus", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../../features/disabled-menus/api/useDisabledMenus")>(),
+  useDisabledMenus,
+}));
+
 /** The dialog renders only when the layout opens it; the marker keeps this test on the trigger. */
 vi.mock("../../features/attention/components/AttentionDialog", () => ({
   AttentionDialog: ({ open }: { open: boolean }) => (open ? <div>Briefing perhatian terbuka</div> : null),
@@ -42,6 +50,7 @@ function renderLayout() {
 
 afterEach(() => {
   cleanup();
+  useDisabledMenus.mockReturnValue({ data: { disabledMenuKeys: [] } });
   useAuthStore.setState({ user: null, pendingLoginNotice: false, inactivityTimeoutSeconds: null, activityHeartbeatSeconds: null });
 });
 
@@ -64,6 +73,25 @@ describe("MainLayout", () => {
     const report = screen.getByRole("link", { name: "Laporan Peminjaman" });
     expect(approval.compareDocumentPosition(cancellation) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(cancellation.compareDocumentPosition(report) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("keeps disabled navigation and menu settings visible", () => {
+    useDisabledMenus.mockReturnValue({ data: { disabledMenuKeys: ["room-booking", "maintenance"] } });
+    useAuthStore.setState({ user: kasubag, pendingLoginNotice: false, isInitialized: true });
+
+    renderLayout();
+
+    expect(screen.getByRole("link", { name: "Mode Maintenance" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Disable Menu" })).toHaveAttribute("href", "/admin/disabled-menus");
+  });
+
+  it("keeps disabled submission navigation visible to borrowers", () => {
+    useDisabledMenus.mockReturnValue({ data: { disabledMenuKeys: ["room-booking"] } });
+    useAuthStore.setState({ user: borrower, pendingLoginNotice: false, isInitialized: true });
+
+    renderLayout();
+
+    expect(screen.getByRole("link", { name: "Peminjaman Ruang Rapat" })).toHaveAttribute("href", "/peminjaman-ruang-rapat");
   });
 
   it("opens the post-login briefing from the auth store, not from router state", () => {

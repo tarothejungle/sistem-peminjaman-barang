@@ -131,16 +131,17 @@ describe("BookingActions alternative offer", () => {
     expect(morning).toHaveAttribute("aria-pressed", "false");
   });
 
-  it("locks a multi-day request to the full-day session", () => {
+  it("lets the administrator change the session for a multi-day alternative", () => {
     render(<BookingActions booking={booking("2026-09-10T01:00:00.000Z", "2026-09-12T09:00:00.000Z")} role={Role.KASUBAG_UMUM} currentTime={now} />);
 
     fireEvent.click(screen.getByRole("button", { name: /Beri Alternatif Ruangan/ }));
 
-    expect(screen.getByRole("button", { name: /Pagi/ })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /Siang/ })).toBeDisabled();
-    const fullDay = screen.getByRole("button", { name: /Sehari penuh/ });
-    expect(fullDay).toBeEnabled();
-    expect(fullDay).toHaveAttribute("aria-pressed", "true");
+    const morning = screen.getByRole("button", { name: /Pagi/ });
+    const afternoon = screen.getByRole("button", { name: /Siang/ });
+    expect(morning).toBeEnabled();
+    expect(afternoon).toBeEnabled();
+    fireEvent.click(afternoon);
+    expect(afternoon).toHaveAttribute("aria-pressed", "true");
   });
 });
 

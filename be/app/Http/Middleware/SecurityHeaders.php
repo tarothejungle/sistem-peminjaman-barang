@@ -26,7 +26,7 @@ final class SecurityHeaders
                 $scriptSrc .= " 'sha256-".base64_encode(hash('sha256', $inlineScript, true))."'";
             }
         }
-        $csp = "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; object-src 'none'; img-src 'self' data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src {$scriptSrc}; connect-src 'self'; frame-src https://challenges.cloudflare.com";
+        $csp = "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; object-src 'none'; img-src 'self' data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src {$scriptSrc}; connect-src 'self'; frame-src 'self' https://challenges.cloudflare.com";
 
         $response->headers->set('Content-Security-Policy', $csp);
         $response->headers->set('X-Content-Type-Options', 'nosniff');

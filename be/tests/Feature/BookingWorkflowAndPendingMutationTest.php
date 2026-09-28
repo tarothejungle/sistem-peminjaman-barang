@@ -265,23 +265,41 @@ final class BookingWorkflowAndPendingMutationTest extends TestCase
         $this->assertDatabaseHas('bookings', ['id' => $bookingId, 'status' => BookingStatus::APPROVED->value]);
     }
 
-    public function test_room_booking_completion_does_not_change_the_credibility_score(): void
+    public function test_room_booking_completion_changes_the_credibility_score(): void
     {
+        config(['jwt.booking_room_auto_confirm_minutes' => 120]);
         $ownerId = (string) Str::uuid();
         $roomId = (string) Str::uuid();
         DB::table('users')->insert(['id' => $ownerId, 'role' => Role::PEMOHON->value, 'credit_score' => 90]);
         DB::table('rooms')->insert(['id' => $roomId, 'name' => 'Ruang Rapat Utama', 'is_active' => true]);
-        $bookingId = $this->booking(BookingStatus::APPROVED, $ownerId, null, $roomId);
+        $bookingId = $this->booking(BookingStatus::APPROVED, $ownerId, roomId: $roomId);
         DB::table('bookings')->where('id', $bookingId)->update(['start_time' => now()->subHours(2), 'end_time' => now()->subHour()]);
         $booking = Booking::findOrFail($bookingId);
 
-        $this->assertNull(app(CreditScoreService::class)->preview($booking, CarbonImmutable::now()));
+        $this->assertSame(5, app(CreditScoreService::class)->preview($booking, CarbonImmutable::now())['delta']);
         $this->withToken($this->token(Role::PEMOHON, $ownerId))->patchJson("/api/v1/bookings/{$bookingId}/confirm-finished")
             ->assertOk()
             ->assertJsonPath('data.status', BookingStatus::COMPLETED->value);
 
-        $this->assertSame(90, (int) DB::table('users')->where('id', $ownerId)->value('credit_score'));
-        $this->assertDatabaseMissing('user_credit_events', ['booking_id' => $bookingId]);
+        $this->assertSame(95, (int) DB::table('users')->where('id', $ownerId)->value('credit_score'));
+        $this->assertDatabaseHas('user_credit_events', ['booking_id' => $bookingId, 'delta' => 5, 'score_after' => 95]);
+    }
+
+    public function test_room_booking_confirmed_after_the_grace_period_loses_five_points(): void
+    {
+        config(['jwt.booking_room_auto_confirm_minutes' => 60]);
+        $ownerId = (string) Str::uuid();
+        $roomId = (string) Str::uuid();
+        DB::table('users')->insert(['id' => $ownerId, 'role' => Role::PEMOHON->value, 'credit_score' => 100]);
+        DB::table('rooms')->insert(['id' => $roomId, 'name' => 'Ruang Rapat Utama', 'is_active' => true]);
+        $bookingId = $this->booking(BookingStatus::APPROVED, $ownerId, roomId: $roomId);
+        DB::table('bookings')->where('id', $bookingId)->update(['start_time' => now()->subHours(4), 'end_time' => now()->subHours(2)]);
+
+        $this->withToken($this->token(Role::PEMOHON, $ownerId))->patchJson("/api/v1/bookings/{$bookingId}/confirm-finished")
+            ->assertOk();
+
+        $this->assertSame(95, (int) DB::table('users')->where('id', $ownerId)->value('credit_score'));
+        $this->assertDatabaseHas('user_credit_events', ['booking_id' => $bookingId, 'delta' => -5, 'score_after' => 95]);
     }
 
     public function test_returning_an_item_on_time_awards_five_credibility_points(): void
@@ -538,7 +556,7 @@ final class BookingWorkflowAndPendingMutationTest extends TestCase
         ])->assertBadRequest()->assertJsonPath('error.message', 'Data tidak valid');
     }
 
-    public function test_multi_day_alternative_keeps_the_original_day_span_and_requires_the_full_day_session(): void
+    public function test_multi_day_alternative_keeps_the_original_day_span_with_a_morning_session(): void
     {
         $mainRoomId = (string) Str::uuid();
         $alternativeRoomId = (string) Str::uuid();
@@ -554,24 +572,16 @@ final class BookingWorkflowAndPendingMutationTest extends TestCase
         ]);
         $date = now('Asia/Jakarta')->addDays(6)->format('Y-m-d');
 
-        // A three-day request cannot be squeezed into a single-day session.
         $this->withToken($this->token(Role::KASUBAG_UMUM))->patchJson("/api/v1/bookings/{$bookingId}/alternative", [
             'alternativeRoomId' => $alternativeRoomId,
             'alternativeDate' => $date,
             'alternativeRoomSlot' => 'MORNING',
-        ])->assertBadRequest()
-            ->assertJsonPath('error.message', 'Peminjaman lebih dari satu hari wajib menggunakan kategori sehari penuh');
-
-        $this->withToken($this->token(Role::KASUBAG_UMUM))->patchJson("/api/v1/bookings/{$bookingId}/alternative", [
-            'alternativeRoomId' => $alternativeRoomId,
-            'alternativeDate' => $date,
-            'alternativeRoomSlot' => 'FULL_DAY',
         ])->assertOk();
 
         $stored = DB::table('bookings')->where('id', $bookingId)->first();
         $expectedEnd = CarbonImmutable::createFromFormat('Y-m-d', $date, 'Asia/Jakarta')->addDays(2)->format('Y-m-d');
         $this->assertSame($date.' 08:00', CarbonImmutable::parse($stored->alternative_start_time)->setTimezone('Asia/Jakarta')->format('Y-m-d H:i'));
-        $this->assertSame($expectedEnd.' 16:00', CarbonImmutable::parse($stored->alternative_end_time)->setTimezone('Asia/Jakarta')->format('Y-m-d H:i'));
+        $this->assertSame($expectedEnd.' 12:00', CarbonImmutable::parse($stored->alternative_end_time)->setTimezone('Asia/Jakarta')->format('Y-m-d H:i'));
     }
 
     public function test_alternative_offer_is_rejected_once_the_booking_window_has_passed(): void
